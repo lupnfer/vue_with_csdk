@@ -1,13 +1,12 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, session } from 'electron'
 import { join } from 'node:path'
+import { createWebPreferences, buildCsp } from './security'
 
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 800,
     height: 600,
-    webPreferences: {
-      preload: join(__dirname, '../preload/index.js')
-    }
+    webPreferences: createWebPreferences()
   })
 
   if (process.env['ELECTRON_RENDERER_URL']) {
@@ -17,13 +16,40 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
-  createWindow()
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-})
+function focusMainWindow(): void {
+  const win = BrowserWindow.getAllWindows()[0]
+  if (!win) return
+  if (win.isMinimized()) win.restore()
+  win.focus()
+}
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
-})
+function applyCsp(): void {
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [buildCsp()]
+      }
+    })
+  })
+}
+
+const gotLock = app.requestSingleInstanceLock()
+
+if (!gotLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => focusMainWindow())
+
+  app.whenReady().then(() => {
+    if (app.isPackaged) applyCsp()
+    createWindow()
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
+  })
+
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit()
+  })
+}
