@@ -1,6 +1,7 @@
 import { app, BrowserWindow, session } from 'electron'
 import { join } from 'node:path'
 import { createWebPreferences, buildCsp } from './security'
+import { registerIpc } from './ipc/register'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -43,6 +44,7 @@ if (!gotLock) {
 
   app.whenReady().then(() => {
     if (app.isPackaged) applyCsp()
+    registerIpc()
     createWindow()
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
