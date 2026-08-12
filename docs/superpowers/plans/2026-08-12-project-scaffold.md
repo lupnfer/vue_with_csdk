@@ -304,7 +304,7 @@ git commit -m "feat: 初始化 electron-vite 工程骨架"
 - Produces:
   - `createWebPreferences(): Electron.WebPreferences` — 返回 `{ preload, sandbox: false, contextIsolation: true, nodeIntegration: false }`
   - `buildCsp(): string` — 生产环境 CSP 策略字符串
-  - `registerIpc(): void` — 由 Task 3 提供，此处先在 index.ts 预留调用点（Task 3 实现后删除占位）
+  - `registerIpc(): void` — 由 Task 3 提供并接入 index.ts
 
 - [ ] **Step 1: 写失败测试**
 
