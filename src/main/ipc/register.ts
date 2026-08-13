@@ -71,44 +71,61 @@ export function registerIpc(): void {
     return ensureClient().disposeSession({ id })
   })
 
-  const wrap = <T>(fn: () => T): T => {
+  // 包裹整个 handler（含 ensureDbClient 的 open 失败）：DbError 序列化为可跨 IPC 的普通对象。
+  const wrapAsync = async <T>(fn: () => Promise<T> | T): Promise<T> => {
     try {
-      return fn()
+      return await fn()
     } catch (e) {
       throw e instanceof DbError ? serializeDbError(e) : e
     }
   }
 
-  ipcMain.handle(DB_CHANNELS.getAppConfig, async (_e, key) => {
-    const c = await ensureDbClient()
-    return wrap(() => c.getAppConfig(validate(dbKeySchema, key)))
-  })
-  ipcMain.handle(DB_CHANNELS.setAppConfig, async (_e, key, value) => {
-    const c = await ensureDbClient()
-    wrap(() => c.setAppConfig(validate(dbKeySchema, key), validate(dbValueSchema, value)))
-  })
-  ipcMain.handle(DB_CHANNELS.deleteAppConfig, async (_e, key) => {
-    const c = await ensureDbClient()
-    wrap(() => c.deleteAppConfig(validate(dbKeySchema, key)))
-  })
-  ipcMain.handle(DB_CHANNELS.listAppConfig, async () => {
-    const c = await ensureDbClient()
-    return wrap(() => c.listAppConfig())
-  })
-  ipcMain.handle(DB_CHANNELS.getSecretConfig, async (_e, key) => {
-    const c = await ensureDbClient()
-    return wrap(() => c.getSecretConfig(validate(dbKeySchema, key)))
-  })
-  ipcMain.handle(DB_CHANNELS.setSecretConfig, async (_e, key, value) => {
-    const c = await ensureDbClient()
-    wrap(() => c.setSecretConfig(validate(dbKeySchema, key), validate(dbValueSchema, value)))
-  })
-  ipcMain.handle(DB_CHANNELS.deleteSecretConfig, async (_e, key) => {
-    const c = await ensureDbClient()
-    wrap(() => c.deleteSecretConfig(validate(dbKeySchema, key)))
-  })
-  ipcMain.handle(DB_CHANNELS.listSecretConfig, async () => {
-    const c = await ensureDbClient()
-    return wrap(() => c.listSecretConfig())
-  })
+  ipcMain.handle(DB_CHANNELS.getAppConfig, (_e, key) =>
+    wrapAsync(async () => {
+      const c = await ensureDbClient()
+      return c.getAppConfig(validate(dbKeySchema, key))
+    })
+  )
+  ipcMain.handle(DB_CHANNELS.setAppConfig, (_e, key, value) =>
+    wrapAsync(async () => {
+      const c = await ensureDbClient()
+      c.setAppConfig(validate(dbKeySchema, key), validate(dbValueSchema, value))
+    })
+  )
+  ipcMain.handle(DB_CHANNELS.deleteAppConfig, (_e, key) =>
+    wrapAsync(async () => {
+      const c = await ensureDbClient()
+      c.deleteAppConfig(validate(dbKeySchema, key))
+    })
+  )
+  ipcMain.handle(DB_CHANNELS.listAppConfig, () =>
+    wrapAsync(async () => {
+      const c = await ensureDbClient()
+      return c.listAppConfig()
+    })
+  )
+  ipcMain.handle(DB_CHANNELS.getSecretConfig, (_e, key) =>
+    wrapAsync(async () => {
+      const c = await ensureDbClient()
+      return c.getSecretConfig(validate(dbKeySchema, key))
+    })
+  )
+  ipcMain.handle(DB_CHANNELS.setSecretConfig, (_e, key, value) =>
+    wrapAsync(async () => {
+      const c = await ensureDbClient()
+      c.setSecretConfig(validate(dbKeySchema, key), validate(dbValueSchema, value))
+    })
+  )
+  ipcMain.handle(DB_CHANNELS.deleteSecretConfig, (_e, key) =>
+    wrapAsync(async () => {
+      const c = await ensureDbClient()
+      c.deleteSecretConfig(validate(dbKeySchema, key))
+    })
+  )
+  ipcMain.handle(DB_CHANNELS.listSecretConfig, () =>
+    wrapAsync(async () => {
+      const c = await ensureDbClient()
+      return c.listSecretConfig()
+    })
+  )
 }

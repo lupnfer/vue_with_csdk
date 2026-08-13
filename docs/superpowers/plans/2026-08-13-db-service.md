@@ -1558,4 +1558,18 @@ git commit -m "chore(db): HomeView 入口链接与全量验证"
 - **Spec 覆盖**：§3 模块结构→Task 1-7；§4 KeyProvider→Task 4；§5 schema/迁移/CRUD→Task 5/6；§6 错误→Task 2 + register wrap；§7 测试→各 Task；§8 工程集成→Task 8/9/10；§9 验收→Task 10 Step 2。
 - **类型一致性**：`ConfigEntry` 在 types.ts、repositories.ts、api.ts（内联 `{key,value,updatedAt}`）、dbConfigEntrySchema 结构一致；`DbKeys` 在 key-provider.ts 定义、db-client.ts/migrations 用；`DbError` 码值在 errors.ts、register.ts wrap、验收标准一致。
 - **无占位符**：所有代码块完整可执行；register.ts 的 `wrap` + ensureDbClient 完整；preload 8 方法齐全。
-- **已知项**：① SafeStorageKeyProvider 运行时验证推迟 6/6（3/6 用 StaticKeyProvider 测）；② 默认 cipher sqleet（非 SQLCipher 格式），POC 自建自读够用；③ `require('electron')` 动态取 safeStorage，CJS 下可用；④ register.ts `wrap` 序列化 DbError 为 SerializedDbError 普通对象，但 preload 未反序列化——renderer 拿到普通对象（非 DbError 实例）。3/6 不跑 Electron 冲烟，DbView 错误路径不被执行（仅组件测试，mock 了 window.api），故不影响；6/6 接入时若需 renderer 拿到 DbError 实例再补 preload 反序列化；⑤ **vitest.config.ts 加 `env.ELECTRON_OVERRIDE_DIST_PATH`**：本 worktree 的 electron 二进制未装（postinstall 网络失败），`require('electron')` 会触发 spawnSync 下载阻塞测试。设该 env（electron 官方 override 机制，`index.js:30`）使其直接返回字符串路径，`electron?.safeStorage` 为 undefined，与计划预期的非 Electron 降级路径一致。6/6 装好 electron 二进制后可移除该 env；⑥ **加密库测试须先写数据再 close**：SQLite 对"open+key+读空 sqlite_master+close"不写任何页（文件 0 字节），错误密钥重开时无加密内容可校验、不抛错。Task 5 test 2 已加 `CREATE TABLE` 触发加密页落盘；后续涉及"错误密钥"的测试（Task 6/7）同理须先写入数据页；⑦ **tsconfig.node.json 加 `better-sqlite3-multiple-ciphers` 的 paths 映射**：该包 `exports` 字段无 `types` 条件，`moduleResolution: Bundler` 无法解析其类型（TS7016），故显式映射到 `index.d.ts`。运行时（vitest/esbuild）仍走 `exports` 的 `lib/index.js`，不受影响。
+- **已知项 / 6/6 待办**（3/6 不跑 Electron 冲烟，以下在真实 Electron IPC 下才暴露，6/6 须处理）：
+  - ① SafeStorageKeyProvider 运行时验证：3/6 用 StaticKeyProvider 测，真实 safeStorage 集成推迟 6/6。
+  - ② 装 `@electron/rebuild` 并为 Electron ABI 重建 better-sqlite3-multiple-ciphers native 模块（当前 Node ABI，Electron 加载会崩）。
+  - ③ `vitest.config.ts` 的 `env.ELECTRON_OVERRIDE_DIST_PATH`：本 worktree electron 二进制未装（postinstall 网络失败），`require('electron')` 触发 spawnSync 下载阻塞测试；设该 env（electron 官方 override，`index.js:30`）使其返回字符串路径，`electron?.safeStorage` 为 undefined，与计划预期的非 Electron 降级路径一致。**6/6 装好 electron 二进制后移除该 env。**
+  - ④ key-provider.ts 加 `safeStorage.isEncryptionAvailable()` 检查：当前只判 `if (!safeStorage)`（undefined）。Linux 无 keyring 时 safeStorage 存在但不可用，`encryptString` 会失败——须用 `isEncryptionAvailable()` 才能正确降级。
+  - ⑤ register.ts `dbClientPromise` 失败缓存：open 失败后 promise 持续 reject，后续所有 DB IPC 都返回同一 rejected promise（无重试，需重启应用）。对 essential DB 是可接受设计，但 6/6 须明确文档化或加重置逻辑。
+  - ⑥ 应用退出时优雅关闭 DB：register.ts 须加 `app.on('before-quit') → dbClient.close()`（当前无 shutdown handler）。
+  - ⑦ 默认 cipher sqleet（非 SQLCipher 格式），POC 自建自读够用；若需 DB Browser 等工具兼容，加 `db.pragma('cipher=sqlcipher')` 等。
+  - ⑧ `require('electron')` 动态取 safeStorage，CJS 下可用；6/6 若改 ESM 须换 `createRequire`。
+- **3/6 已修复的跨任务问题（终审）**：
+  - ① DbView 错误显示：原 `e instanceof Error ? e.message : String(e)` 对 IPC 序列化的普通对象（非 Error 实例）会显示 `[object Object]`。已加 `errMsg(e)` 优先读 `.message`，兼容 Error 与 SerializedDbError 普通对象。
+  - ② register.ts `wrap` 仅包裹 CRUD 调用、漏了 `ensureDbClient()` 的 open 失败（DB_KEY_ERROR 等）未序列化。已改为 `wrapAsync` 包裹整个 handler 体（含 open）。
+  - ③ DbClient.open() 迁移失败时 db 句柄泄漏（better-sqlite3 不自动关闭）。已加 try/catch 在 migrate 失败时 closeDb 并清空 this.db。
+- **tsconfig.node.json 加 `better-sqlite3-multiple-ciphers` 的 paths 映射**：该包 `exports` 字段无 `types` 条件，`moduleResolution: Bundler` 无法解析其类型（TS7016），故显式映射到 `index.d.ts`。运行时（vitest/esbuild）仍走 `exports` 的 `lib/index.js`，不受影响。
+- **加密库测试须先写数据再 close**：SQLite 对"open+key+读空 sqlite_master+close"不写任何页（文件 0 字节），错误密钥重开时无加密内容可校验、不抛错。Task 5 test 2 已加 `CREATE TABLE` 触发加密页落盘；后续涉及"错误密钥"的测试同理须先写入数据页。

@@ -18,8 +18,15 @@ export class DbClient {
   async open(): Promise<void> {
     const keys = await this.keyProvider.loadKeys()
     this.db = openEncryptedDb(this.path, keys.dbKey)
-    migrate(this.db)
-    this.repos = new Repositories(this.db, keys.fieldKey)
+    try {
+      migrate(this.db)
+      this.repos = new Repositories(this.db, keys.fieldKey)
+    } catch (e) {
+      // 迁移失败时关闭已打开的 db 句柄，避免泄漏（better-sqlite3 不自动关闭）
+      closeDb(this.db)
+      this.db = null
+      throw e
+    }
   }
 
   private ensure(): Repositories {
