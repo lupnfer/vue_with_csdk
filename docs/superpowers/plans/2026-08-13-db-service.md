@@ -1058,7 +1058,15 @@ describe('DbClient 端到端', () => {
     await c.open()
     c.close()
     expect(() => c.getAppConfig('any')).toThrow(DbError)
-    expect(() => c.getAppConfig('any')).toThrow(/DB_NOT_OPEN/)
+    // getAppConfig 同步抛错；断言结构化 code（而非 message 子串）
+    let thrown: unknown
+    try {
+      c.getAppConfig('any')
+    } catch (e) {
+      thrown = e
+    }
+    expect(thrown).toBeInstanceOf(DbError)
+    expect((thrown as DbError).code).toBe('DB_NOT_OPEN')
   })
 })
 ```
