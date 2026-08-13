@@ -600,9 +600,12 @@ export const crcRelease = lib.func('int crc_sdk_release(sdk_handle *handle)')
 export const crcClose = lib.func('int crc_sdk_close(sdk_session *session)')
 export const crcVersion = lib.func('const char *crc_sdk_version(void)')
 
-/** 在 worker 内注册 JS 回调，返回注册 id（用于 unregister） */
+/** 在 worker 内注册 JS 回调，返回注册 id（用于 unregister）。
+ *  注意：koffi.register 要求传入函数指针类型（Callback），不是 proto 本身（Prototype）；
+ *  计划初稿写成 koffi.register(fn, ScanCallback) 会在运行时抛
+ *  "Unexpected scan_callback type, expected <callback> * type"，故用 koffi.pointer(ScanCallback)。 */
 export function registerCallback(fn: (eventType: number, payload: string, userData: unknown) => void): bigint {
-  return koffi.register(fn, ScanCallback)
+  return koffi.register(fn, koffi.pointer(ScanCallback))
 }
 
 export function unregisterCallback(id: bigint): void {
