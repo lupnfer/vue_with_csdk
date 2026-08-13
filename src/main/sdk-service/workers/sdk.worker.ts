@@ -132,6 +132,24 @@ parentPort?.on('message', (msg: InvokeMessage) => {
         ok(msg.id, null)
         break
       }
+      case 'closeAll': {
+        const leakedHandles = [...handles.keys()]
+        const leakedSessions = [...sessions.keys()]
+        if (leakedHandles.length || leakedSessions.length) {
+          // POC：仅打日志，不硬失败
+          post({
+            type: 'event',
+            data: { kind: 'leak', handles: leakedHandles, sessions: leakedSessions }
+          })
+        }
+        // 清理所有回调注册
+        for (const regId of handleCallbacks.values()) unregisterCallback(regId)
+        handleCallbacks.clear()
+        handles.clear()
+        sessions.clear()
+        ok(msg.id, { handles: leakedHandles.length, sessions: leakedSessions.length })
+        break
+      }
       default: {
         fail(msg.id, { code: 'SDK_UNKNOWN_METHOD', category: 'call', message: `unknown method ${msg.method}`, retryable: false })
       }
