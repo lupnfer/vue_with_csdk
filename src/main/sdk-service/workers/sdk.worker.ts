@@ -1,0 +1,128 @@
+import { parentPort } from 'node:worker_threads'
+import {
+  crcInit,
+  crcOpen,
+  crcRelease,
+  crcClose,
+  crcVersion,
+  registerCallback,
+  unregisterCallback
+} from '../binding'
+import type { InvokeMessage, ResultMessage, EventMessage } from '../transport/types'
+import type { SerializedError } from '../errors'
+
+// id ↔ 指针 注册表（指针只在 worker 内持有与释放）
+const sessions = new Map<number, unknown>()     // id → session ptr
+const handles = new Map<number, unknown>()      // id → handle ptr
+const handleCallbacks = new Map<number, bigint>() // handle id → koffi 注册 id
+let nextId = 1
+
+function allocId(): number {
+  return nextId++
+}
+
+function post(msg: ResultMessage | EventMessage): void {
+  parentPort?.postMessage(msg)
+}
+
+function ok(id: number, data: unknown): void {
+  post({ type: 'result', id, ok: true, data })
+}
+
+function fail(id: number, error: SerializedError): void {
+  post({ type: 'result', id, ok: false, error })
+}
+
+parentPort?.on('message', (msg: InvokeMessage) => {
+  try {
+    switch (msg.method) {
+      case 'version': {
+        ok(msg.id, crcVersion())
+        break
+      }
+      case 'init': {
+        const [config] = msg.args as [{ mode: number; logger: { level: number; prefix: string } }]
+        const ptr = crcInit(config)
+        if (!ptr) {
+          fail(msg.id, { code: 'SDK_INIT_FAILED', category: 'init', message: 'init returned NULL', retryable: false })
+          return
+        }
+        const id = allocId()
+        sessions.set(id, ptr)
+        ok(msg.id, { id })
+        break
+      }
+      case 'open': {
+        const [sessionId] = msg.args as [number]
+        const sessionPtr = sessions.get(sessionId)
+        if (!sessionPtr) {
+          fail(msg.id, { code: 'SDK_NO_SESSION', category: 'call', message: 'session not found', retryable: false })
+          return
+        }
+        const handleId = allocId()
+        // 注册回调：投递到主进程
+        const cb = (eventType: number, payload: string, _userData: unknown): void => {
+          post({ type: 'event', data: { handleId, eventType, payload } })
+        }
+        const regId = registerCallback(cb)
+        const ptr = crcOpen(sessionPtr, { cb, user_data: null })
+        if (!ptr) {
+          unregisterCallback(regId)
+          fail(msg.id, { code: 'SDK_OPEN_FAILED', category: 'call', message: 'open returned NULL', retryable: false })
+          return
+        }
+        handles.set(handleId, ptr)
+        handleCallbacks.set(handleId, regId)
+        ok(msg.id, { id: handleId })
+        break
+      }
+      case 'release': {
+        const [handleId] = msg.args as [number]
+        const ptr = handles.get(handleId)
+        if (!ptr) {
+          fail(msg.id, { code: 'SDK_ALREADY_RELEASED', category: 'memory', message: 'handle not found', retryable: false })
+          return
+        }
+        const rc = crcRelease(ptr) as number
+        if (rc !== 0) {
+          fail(msg.id, { code: 'SDK_CALL_FAILED', category: 'memory', message: `release rc=${rc}`, retryable: false })
+          return
+        }
+        const regId = handleCallbacks.get(handleId)
+        if (regId !== undefined) {
+          unregisterCallback(regId)
+          handleCallbacks.delete(handleId)
+        }
+        handles.delete(handleId)
+        ok(msg.id, null)
+        break
+      }
+      case 'close': {
+        const [sessionId] = msg.args as [number]
+        const ptr = sessions.get(sessionId)
+        if (!ptr) {
+          fail(msg.id, { code: 'SDK_ALREADY_RELEASED', category: 'memory', message: 'session not found', retryable: false })
+          return
+        }
+        const rc = crcClose(ptr) as number
+        if (rc !== 0) {
+          fail(msg.id, { code: 'SDK_CALL_FAILED', category: 'memory', message: `close rc=${rc}`, retryable: false })
+          return
+        }
+        sessions.delete(sessionId)
+        ok(msg.id, null)
+        break
+      }
+      default: {
+        fail(msg.id, { code: 'SDK_UNKNOWN_METHOD', category: 'call', message: `unknown method ${msg.method}`, retryable: false })
+      }
+    }
+  } catch (e) {
+    fail(msg.id, {
+      code: 'SDK_UNKNOWN',
+      category: 'unknown',
+      message: e instanceof Error ? e.message : String(e),
+      retryable: true
+    })
+  }
+})

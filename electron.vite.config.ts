@@ -6,6 +6,14 @@ export default defineConfig({
   main: {
     resolve: {
       alias: { '@shared': resolve('src/shared') }
+    },
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve('src/main/index.ts'),
+          'workers/sdk.worker': resolve('src/main/sdk-service/workers/sdk.worker.ts')
+        }
+      }
     }
   },
   preload: {
