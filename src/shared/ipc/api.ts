@@ -20,8 +20,20 @@ export interface SdkApi {
   on(event: 'event', cb: (e: SdkEvent) => void): () => void
 }
 
+export interface DbApi {
+  getAppConfig(key: string): Promise<string | null>
+  setAppConfig(key: string, value: string): Promise<void>
+  deleteAppConfig(key: string): Promise<void>
+  listAppConfig(): Promise<{ key: string; value: string; updatedAt: string }[]>
+  getSecretConfig(key: string): Promise<string | null>
+  setSecretConfig(key: string, value: string): Promise<void>
+  deleteSecretConfig(key: string): Promise<void>
+  listSecretConfig(): Promise<{ key: string; value: string; updatedAt: string }[]>
+}
+
 export interface RendererApi {
   ping(): Promise<{ ok: boolean }>
   getVersion(): Promise<VersionInfo>
   sdk: SdkApi
+  db: DbApi
 }

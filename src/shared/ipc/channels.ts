@@ -43,3 +43,26 @@ export const sdkEventSchema = z.object({
   eventType: z.number().int(),
   payload: z.string()
 })
+
+// ---- DB ----
+export const DB_CHANNELS = {
+  getAppConfig: 'db:get-app-config',
+  setAppConfig: 'db:set-app-config',
+  deleteAppConfig: 'db:delete-app-config',
+  listAppConfig: 'db:list-app-config',
+  getSecretConfig: 'db:get-secret-config',
+  setSecretConfig: 'db:set-secret-config',
+  deleteSecretConfig: 'db:delete-secret-config',
+  listSecretConfig: 'db:list-secret-config'
+} as const
+
+export type DbChannelName = (typeof DB_CHANNELS)[keyof typeof DB_CHANNELS]
+
+export const dbKeySchema = z.string().min(1)
+export const dbValueSchema = z.string()
+export const dbConfigEntrySchema = z.object({
+  key: z.string(),
+  value: z.string(),
+  updatedAt: z.string()
+})
+export const dbConfigListSchema = z.array(dbConfigEntrySchema)
