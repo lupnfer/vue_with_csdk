@@ -9,9 +9,11 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "vue-tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:mock": "make -C mock-sdk/c"
   },
   "dependencies": {
+    "koffi": "^3.1.4",
     "pinia": "^4.0.2",
     "vue": "^3.5.41",
     "vue-router": "^5.2.0",

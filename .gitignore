@@ -28,3 +28,6 @@ logs/
 
 # Git worktrees
 .worktrees/
+
+# Mock SDK build output
+mock-sdk/build/
