@@ -1247,7 +1247,7 @@ git commit -m "feat(sdk): 泄漏检测与错误传播"
 
 ```ts
 import { EventEmitter } from 'node:events'
-import type { Transport } from './transport/types'
+import type { Transport } from './transport/worker-transport'
 import type { Session, Handle, SdkConfig, SdkEvent } from './types'
 
 export class SdkClient {
