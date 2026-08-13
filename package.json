@@ -10,6 +10,8 @@
     "preview": "electron-vite preview",
     "typecheck": "vue-tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest run",
+    "test:integration": "npm run build:mock && npm run build && vitest run --config vitest.config.integration.ts",
+    "test:all": "npm run test && npm run test:integration",
     "build:mock": "make -C mock-sdk/c"
   },
   "dependencies": {

@@ -10,5 +10,6 @@ onMounted(() => store.loadVersion())
   <main>
     <h1>Code Reader Client</h1>
     <p>应用版本：{{ store.version || '加载中…' }}</p>
+    <p><RouterLink to="/sdk">SDK POC</RouterLink></p>
   </main>
 </template>

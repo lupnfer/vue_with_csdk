@@ -18,7 +18,7 @@ beforeEach(() => {
 describe('HomeView', () => {
   it('显示从主进程获取的应用版本', async () => {
     const wrapper = mount(HomeView, {
-      global: { plugins: [createPinia()] }
+      global: { plugins: [createPinia()], stubs: { RouterLink: true } }
     })
     await flushPromises()
     expect(wrapper.text()).toContain('0.1.0')
