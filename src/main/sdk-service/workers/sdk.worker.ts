@@ -2,6 +2,7 @@ import { parentPort } from 'node:worker_threads'
 import {
   crcInit,
   crcOpen,
+  crcStartScan,
   crcRelease,
   crcClose,
   crcVersion,
@@ -77,6 +78,21 @@ parentPort?.on('message', (msg: InvokeMessage) => {
         handles.set(handleId, ptr)
         handleCallbacks.set(handleId, regId)
         ok(msg.id, { id: handleId })
+        break
+      }
+      case 'start': {
+        const [handleId] = msg.args as [number]
+        const ptr = handles.get(handleId)
+        if (!ptr) {
+          fail(msg.id, { code: 'SDK_CALL_FAILED', category: 'call', message: 'handle not found', retryable: false })
+          return
+        }
+        const rc = crcStartScan(ptr) as number
+        if (rc !== 0) {
+          fail(msg.id, { code: 'SDK_CALL_FAILED', category: 'call', message: `start rc=${rc}`, retryable: false })
+          return
+        }
+        ok(msg.id, null)   // 立即返回；结果走回调事件
         break
       }
       case 'release': {
