@@ -15,6 +15,7 @@
     "build:mock": "make -C mock-sdk/c"
   },
   "dependencies": {
+    "better-sqlite3-multiple-ciphers": "^13.0.3",
     "koffi": "^3.1.4",
     "pinia": "^4.0.2",
     "vue": "^3.5.41",
