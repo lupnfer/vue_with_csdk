@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { CHANNELS, SDK_CHANNELS } from '@shared/ipc/channels'
+import { CHANNELS, SDK_CHANNELS, DB_CHANNELS } from '@shared/ipc/channels'
 import type { RendererApi } from '@shared/ipc/api'
 
 const api: RendererApi = {
@@ -16,6 +16,16 @@ const api: RendererApi = {
       ipcRenderer.on(SDK_CHANNELS.event, handler)
       return () => ipcRenderer.removeListener(SDK_CHANNELS.event, handler)
     }
+  },
+  db: {
+    getAppConfig: (key) => ipcRenderer.invoke(DB_CHANNELS.getAppConfig, key),
+    setAppConfig: (key, value) => ipcRenderer.invoke(DB_CHANNELS.setAppConfig, key, value),
+    deleteAppConfig: (key) => ipcRenderer.invoke(DB_CHANNELS.deleteAppConfig, key),
+    listAppConfig: () => ipcRenderer.invoke(DB_CHANNELS.listAppConfig),
+    getSecretConfig: (key) => ipcRenderer.invoke(DB_CHANNELS.getSecretConfig, key),
+    setSecretConfig: (key, value) => ipcRenderer.invoke(DB_CHANNELS.setSecretConfig, key, value),
+    deleteSecretConfig: (key) => ipcRenderer.invoke(DB_CHANNELS.deleteSecretConfig, key),
+    listSecretConfig: () => ipcRenderer.invoke(DB_CHANNELS.listSecretConfig)
   }
 }
 
