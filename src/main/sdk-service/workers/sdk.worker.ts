@@ -65,7 +65,10 @@ parentPort?.on('message', (msg: InvokeMessage) => {
           post({ type: 'event', data: { handleId, eventType, payload } })
         }
         const regId = registerCallback(cb)
-        const ptr = crcOpen(sessionPtr, { cb, user_data: null })
+        // 把注册得到的指针传给 open_params.cb，而非 JS 函数本身。
+        // koffi 对直接传入 struct 字段的 JS 函数按 transient 处理（crcOpen 返回即失效），
+        // 而 startScan 会在后续 pthread 上调用回调——必须用 registered 指针才安全。
+        const ptr = crcOpen(sessionPtr, { cb: regId, user_data: null })
         if (!ptr) {
           unregisterCallback(regId)
           fail(msg.id, { code: 'SDK_OPEN_FAILED', category: 'call', message: 'open returned NULL', retryable: false })

@@ -746,7 +746,7 @@ parentPort?.on('message', (msg: InvokeMessage) => {
           post({ type: 'event', data: { handleId, eventType, payload } })
         }
         const regId = registerCallback(cb)
-        const ptr = crcOpen(sessionPtr, { cb, user_data: null })
+        const ptr = crcOpen(sessionPtr, { cb: regId, user_data: null })
         if (!ptr) {
           unregisterCallback(regId)
           fail(msg.id, { code: 'SDK_OPEN_FAILED', category: 'call', message: 'open returned NULL', retryable: false })
@@ -809,7 +809,7 @@ parentPort?.on('message', (msg: InvokeMessage) => {
 })
 ```
 
-> `registerCallback(cb)` 让 koffi 为 `cb` 创建并持有 trampoline（C 侧存储的函数指针保持有效，直到 `unregisterCallback`）；struct 的 `cb` 字段传入同一个 `cb`，koffi 复用该 trampoline。这是 koffi 处理"被 C 侧存储的回调"的标准模式。
+> `registerCallback(cb)` 返回一个 registered 指针（bigint），koffi 为 `cb` 创建并持有 trampoline，直到 `unregisterCallback(regId)`。**必须把这个指针传给 `open_params.cb` 字段（`{ cb: regId, ... }`），而不是 JS 函数 `cb` 本身**——koffi 对直接传入 struct 字段的 JS 函数按 transient 回调处理（`crcOpen` 返回即失效），而 `startScan` 会在后续 pthread 上调用回调，transient 回调此时已失效会崩溃（`v8::HandleScope::CreateHandle`）。这是 koffi 文档对"延迟调用的回调"的标准模式（registered callbacks）。
 
 - [ ] **Step 3: 实现 Transport 接口与 WorkerTransport**
 
