@@ -13,6 +13,12 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    exclude: ['tests/sdk/**', '.worktrees/**', 'node_modules/**']
+    exclude: ['tests/sdk/**', '.worktrees/**', 'node_modules/**'],
+    // electron 二进制未安装时，require('electron') 会触发 spawnSync 下载（~10s/次）。
+    // 设置 ELECTRON_OVERRIDE_DIST_PATH 使其直接返回字符串路径（非 API），与计划预期的
+    // 非 Electron 环境行为一致：electron?.safeStorage 为 undefined。
+    env: {
+      ELECTRON_OVERRIDE_DIST_PATH: '/tmp/dummy-electron'
+    }
   }
 })
