@@ -5,7 +5,8 @@ import {
   crcOpen,
   crcRelease,
   crcClose,
-  registerCallback
+  registerCallback,
+  unregisterCallback
 } from '../../src/main/sdk-service/binding'
 import type { SdkConfigStruct, OpenParamsStruct } from '../../src/main/sdk-service/binding'
 
@@ -22,12 +23,15 @@ describe('binding', () => {
   it('完整生命周期：init → open → release → close', () => {
     const session = crcInit({ mode: 1, logger: { level: 2, prefix: 't' } } as unknown as SdkConfigStruct)
     expect(session).not.toBeNull()
-    // 注册空回调让 open 成功（C 侧拒绝 cb=NULL）；异步回调路径在 Task 5 验证
+    // Pattern B（与 worker 一致）：注册回调拿指针，把指针传给 open_params.cb，
+    // 而非直接传 JS 函数（koffi 对后者按 transient 处理，crcOpen 返回即失效）。
+    // 异步回调路径在 Task 5 验证。
     const cb = (): void => {}
-    registerCallback(cb)
-    const handle = crcOpen(session!, { cb, user_data: null } as unknown as OpenParamsStruct)
+    const regId = registerCallback(cb)
+    const handle = crcOpen(session!, { cb: regId, user_data: null } as unknown as OpenParamsStruct)
     expect(handle).not.toBeNull()
     expect(crcRelease(handle!)).toBe(0)
+    unregisterCallback(regId)
     expect(crcClose(session!)).toBe(0)
   })
 })

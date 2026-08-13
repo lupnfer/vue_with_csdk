@@ -230,3 +230,10 @@ interface Transport {
 - 内存泄漏检测：debug 模式下正常 release 全部句柄后，泄漏检测日志为空。
 - transport 抽象就位：`utilityProcess` 切换点预留但未实现，上层接口零耦合。
 - 真实 SDK 到手后只需改 `binding.ts` 指向 `resources/native/`，封装层其余部分不动。
+
+## 11. 已知限制（POC 范围外，真实 SDK 接入前需处理）
+
+1. **`disposeSession` 不追踪 session→handle 所有权。** worker 的 `close` 只删 session 注册表项，不释放该 session 下仍打开的 handle / 不注销其 koffi 回调。调用方必须先 `dispose` 所有 handle 再 `disposeSession`（`closeAll` 是兜底清理，但未暴露给渲染）。真实 SDK 接入时需按其所有权规则补 session→handle 映射或在 `close` 时拒绝仍有 handle 的 session。
+2. **detached 回调线程 vs release 的竞态仅靠时序规避。** mock 用 `PTHREAD_CREATE_DETACHED` 线程投递回调，`scan_thread_arg` 独立分配（线程不再访问 handle 内存，这点安全）；但 `release` 会 `unregisterCallback(regId)` 释放 koffi trampoline，若该线程仍在 trampoline 中执行则 use-after-free。POC 靠 mock 的确定性时序（回调 50ms 内完成）+ 测试/页面的显式等待规避。**真实 SDK 契约必须保证 `release` 返回后不再触发回调**（或提供 join/cancel API），否则需在封装层加 grace period 或延迟注销。
+3. **`closeAll` 的 leak 事件与 scan 事件共用 `sdk-events` 通道且类型不一。** `EventMessage.data: unknown`，`SdkClient.on('event')` 把所有事件当 `SdkEvent`（类型不精确）。当前 `closeAll` 未暴露给渲染，无害；若暴露需做判别联合或独立通道。
+

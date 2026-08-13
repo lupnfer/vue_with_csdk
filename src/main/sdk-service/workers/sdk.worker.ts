@@ -10,7 +10,7 @@ import {
   unregisterCallback
 } from '../binding'
 import type { InvokeMessage, ResultMessage, EventMessage } from '../transport/types'
-import type { SerializedError } from '../errors'
+import { translateError, serializeError, type SdkErrorCategory, type SerializedError } from '../errors'
 
 // id ↔ 指针 注册表（指针只在 worker 内持有与释放）
 const sessions = new Map<number, unknown>()     // id → session ptr
@@ -32,6 +32,11 @@ function ok(id: number, data: unknown): void {
 
 function fail(id: number, error: SerializedError): void {
   post({ type: 'result', id, ok: false, error })
+}
+
+/** 把 C 返回码（非 0）翻译成序列化错误：走 errors.ts 的 RULES（-1/-2/-3 等）。 */
+function failFromRc(id: number, rc: number, category: SdkErrorCategory, what: string): void {
+  fail(id, serializeError(translateError({ code: rc, category, raw: `${what} rc=${rc}` })))
 }
 
 parentPort?.on('message', (msg: InvokeMessage) => {
@@ -89,7 +94,7 @@ parentPort?.on('message', (msg: InvokeMessage) => {
         }
         const rc = crcStartScan(ptr) as number
         if (rc !== 0) {
-          fail(msg.id, { code: 'SDK_CALL_FAILED', category: 'call', message: `start rc=${rc}`, retryable: false })
+          failFromRc(msg.id, rc, 'call', 'start')
           return
         }
         ok(msg.id, null)   // 立即返回；结果走回调事件
@@ -104,7 +109,7 @@ parentPort?.on('message', (msg: InvokeMessage) => {
         }
         const rc = crcRelease(ptr) as number
         if (rc !== 0) {
-          fail(msg.id, { code: 'SDK_CALL_FAILED', category: 'memory', message: `release rc=${rc}`, retryable: false })
+          failFromRc(msg.id, rc, 'memory', 'release')
           return
         }
         const regId = handleCallbacks.get(handleId)
@@ -125,7 +130,7 @@ parentPort?.on('message', (msg: InvokeMessage) => {
         }
         const rc = crcClose(ptr) as number
         if (rc !== 0) {
-          fail(msg.id, { code: 'SDK_CALL_FAILED', category: 'memory', message: `close rc=${rc}`, retryable: false })
+          failFromRc(msg.id, rc, 'memory', 'close')
           return
         }
         sessions.delete(sessionId)
