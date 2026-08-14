@@ -63,8 +63,15 @@ export class HttpClient {
             }
             return { status: res.status, body: this.parseBody(res) as T }
           } catch (refreshErr) {
-            this.logError(method, path, this.toHttpError(refreshErr), attempt)
-            throw this.toHttpError(refreshErr)
+            const replayErr = this.toHttpError(refreshErr)
+            this.logError(method, path, replayErr, attempt)
+            // 刷新失败（auth）或非幂等/不可重试：直接抛
+            if (replayErr.kind === 'auth' || !IDEMPOTENT.has(method) || !replayErr.retryable) {
+              throw replayErr
+            }
+            // 重放遇到可重试错误（如 5xx/网络/超时）：交回外层重试循环，不直接抛
+            lastError = replayErr
+            continue  // 跳过下方对原 401 的处理（否则会用不可重试的 auth 错误覆盖并抛出）
           }
         }
         lastError = err

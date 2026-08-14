@@ -67,4 +67,24 @@ describe('HttpClient 401 刷新重放', () => {
     const refreshRequests = transport.requests.filter((r) => r.url.endsWith('/refresh'))
     expect(refreshRequests).toHaveLength(1)
   })
+
+  it('重放遇 5xx 交回外层重试（401→刷新→500→重试→成功）', async () => {
+    // cfg 默认 maxRetries=0 不够用，这里用 maxRetries=1 让外层能重试一次
+    const cfg2 = { ...defaultHttpConfig(), baseUrl: 'http://api', refreshUrl: 'http://api/refresh', timeoutMs: 1000, maxRetries: 1 }
+    const transport = new FakeTransport([
+      { status: 401, headers: {}, body: '' },                                    // 首次 401
+      { status: 200, headers: {}, body: '{"token":"nt","refreshToken":"nr"}' }, // 刷新成功
+      { status: 500, headers: {}, body: 'server err' },                          // 重放遇 5xx（应交回外层重试）
+      { status: 200, headers: {}, body: '{"ok":true}' }                          // 重试成功
+    ])
+    const tokens = new InMemoryTokenStore()
+    await tokens.setToken('t')
+    await tokens.setRefreshToken('r')
+    const http = new HttpClient(transport, tokens, cfg2)
+
+    const res = await http.get<{ ok: boolean }>('/x')
+    expect(res.body.ok).toBe(true)
+    // 4 次请求：原 401 + 刷新 + 重放 500 + 重试 200
+    expect(transport.requests).toHaveLength(4)
+  })
 })

@@ -1569,3 +1569,10 @@ git commit -m "chore(http): HomeView 入口链接与全量验证"
   - ④ 上传/下载（stream）、私有 CA 导入、POST 幂等键——留后续。
   - ⑤ register.ts 的 HttpClient 单例失败缓存（同 DbClient）：ensureHttpClient 失败后 promise 持续 reject，6/6 须文档化或加重置。
   - ⑥ `HttpClient.tokens` 在 Task 4 即声明为 `readonly`（非 private），register.ts 直接访问，无需跨 Task 改动。
+  - ⑦ **config 运行时不可改（6/6 必办）**：HttpClient 构造时 `configStore.load()` 一次，`config` 成为 `private readonly` 快照；无 `http:set-config` IPC 通道。6/6 真实 Electron 下若未先用 `db:set-app-config` 写入 `http_config`（baseUrl 等），首次请求会打到空 baseUrl 失败。6/6 须：要么加 `setConfig` IPC + 失效 httpClientPromise 重建实例，要么文档化"启动前须 seed http_config"。
+  - ⑧ **NetTransport 的 `res.on('aborted')` 在新版 Electron 可能不触发**（Node 已弃用该事件，推荐 `'close'`）。6/6 真实 Electron 验证时若发现 aborted 响应挂起，改监听 `'close'` 或加超时兜底（现有 timeoutMs 计时器已能兜底，但延迟最长 timeoutMs）。
+- **4/6 已修复的跨任务问题（终审）**：
+  - ① `request()` 内 transport 返回非 2xx 不抛错（FakeTransport/NetTransport 都直接返回响应），需显式 `if (res.status >= 400) throw {kind:'http',...}` 才能进 catch/重试/401 逻辑。Task 4 已加（plan 已同步）。
+  - ② **重放遇可重试错误交回外层重试**：原 Task 5 重放失败一律从内层 catch 抛出，导致 401→刷新→5xx 不重试（违反 maxRetries 契约）。已改为：重放遇 auth/非幂等/不可重试才抛；遇可重试错误（5xx/网络/超时）设 `lastError` 后 `continue` 外层循环（跳过对原 401 的处理，否则会用不可重试的 auth 覆盖并抛出）。加回归测试 `401→刷新→500→重试→成功`。
+  - ③ `z.record(z.string())` 是 zod v3 语法，项目用 zod v4.4.3 要求 `z.record(z.string(), z.string())`（Task 7 已修，plan 已同步）。
+  - ④ DbClient 方法是同步的，AppConfigStore/SecretStore 要求 async；且 secret 方法名不一致（getSecretConfig vs getSecret）。Task 8 register.ts 对 DbHttpConfig/DbTokenStore 都加了 sync→async + 名称映射适配器（plan 已同步）。
