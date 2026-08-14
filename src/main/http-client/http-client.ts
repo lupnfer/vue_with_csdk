@@ -13,6 +13,8 @@ export class HttpClient {
     private readonly config: HttpConfig
   ) {}
 
+  private refreshPromise: Promise<string> | null = null
+
   async get<T = unknown>(path: string, opts?: RequestOptions): Promise<TypedResponse<T>> {
     return this.request<T>('GET', path, opts)
   }
@@ -33,6 +35,7 @@ export class HttpClient {
 
     const maxAttempts = IDEMPOTENT.has(method) ? this.config.maxRetries + 1 : 1
     let lastError: HttpError | null = null
+    let refreshed = false
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       if (attempt > 0) {
@@ -46,16 +49,59 @@ export class HttpClient {
         }
         return { status: res.status, body: this.parseBody(res) as T }
       } catch (e) {
-        lastError = this.toHttpError(e)
-        this.logError(method, path, lastError, attempt)
-        // 非幂等或不可重试：直接抛
-        if (!IDEMPOTENT.has(method) || !lastError.retryable) {
-          throw lastError
+        const err = this.toHttpError(e)
+        // 401：尝试刷新 token 后重放一次（不计入重试次数）
+        if (err.kind === 'auth' && err.status === 401 && !refreshed) {
+          try {
+            const newToken = await this.refreshTokens()
+            refreshed = true
+            // 重放：用新 token 重新发本次请求（不进入退避，attempt 不递增）
+            const req = await this.buildRequest(method, url, opts?.headers, body, timeoutMs)
+            const res = await this.transport.send(req)
+            if (res.status >= 400) {
+              throw { kind: 'http', status: res.status, message: res.body || `HTTP ${res.status}` }
+            }
+            return { status: res.status, body: this.parseBody(res) as T }
+          } catch (refreshErr) {
+            this.logError(method, path, this.toHttpError(refreshErr), attempt)
+            throw this.toHttpError(refreshErr)
+          }
         }
-        // 否则进入下一轮重试
+        lastError = err
+        this.logError(method, path, err, attempt)
+        if (!IDEMPOTENT.has(method) || !err.retryable) {
+          throw err
+        }
       }
     }
     throw lastError ?? new HttpError('network', undefined, 'exhausted retries', false)
+  }
+
+  /** 刷新 token（single-flight：并发 401 只发一次刷新）。 */
+  private async refreshTokens(): Promise<string> {
+    if (this.refreshPromise) return this.refreshPromise
+    this.refreshPromise = (async () => {
+      try {
+        const refreshToken = await this.tokens.getRefreshToken()
+        if (!refreshToken) throw new HttpError('auth', 401, 'no refresh token', false)
+        // 刷新请求本身不带 auth 拦截器、不重试，避免递归
+        const res = await this.transport.send({
+          method: 'POST',
+          url: this.config.refreshUrl,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+          timeoutMs: this.config.timeoutMs
+        })
+        if (res.status !== 200) throw new HttpError('auth', res.status, `refresh failed: ${res.status}`, false)
+        const data = JSON.parse(res.body) as { token: string; refreshToken: string }
+        await this.tokens.setToken(data.token)
+        await this.tokens.setRefreshToken(data.refreshToken)
+        return data.token
+      } finally {
+        this.refreshPromise = null
+      }
+    })()
+    return this.refreshPromise
   }
 
   private async buildRequest(
