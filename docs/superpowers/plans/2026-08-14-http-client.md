@@ -709,6 +709,11 @@ export class HttpClient {
       try {
         const req = await this.buildRequest(method, url, opts?.headers, body, timeoutMs)
         const res = await this.transport.send(req)
+        // transport 不对非 2xx 抛错（FakeTransport/NetTransport 都直接返回响应），
+        // 这里把 >= 400 转成 {kind:'http', status, message} 抛出，交给 catch→toHttpError→translateTransportError
+        if (res.status >= 400) {
+          throw { kind: 'http', status: res.status, message: res.body || `HTTP ${res.status}` }
+        }
         return { status: res.status, body: this.parseBody(res) as T }
       } catch (e) {
         lastError = this.toHttpError(e)
