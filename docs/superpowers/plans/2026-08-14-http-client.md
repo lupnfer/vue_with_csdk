@@ -355,7 +355,7 @@ export class NetTransport implements HttpTransport {
     write(chunk: string): void
     end(): void
     destroy(): void
-    on(event: string, listener: (...args: unknown[]) => void): unknown
+    on(event: string, listener: (...args: any[]) => void): unknown
   } } | undefined {
     try {
       const electron = require('electron')
