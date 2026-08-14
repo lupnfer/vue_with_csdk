@@ -12,5 +12,6 @@ onMounted(() => store.loadVersion())
     <p>应用版本：{{ store.version || '加载中…' }}</p>
     <p><RouterLink to="/sdk">SDK POC</RouterLink></p>
     <p><RouterLink to="/db">DB POC</RouterLink></p>
+    <p><RouterLink to="/http">HTTP POC</RouterLink></p>
   </main>
 </template>
