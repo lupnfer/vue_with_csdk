@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { CHANNELS, SDK_CHANNELS, DB_CHANNELS } from '@shared/ipc/channels'
+import { CHANNELS, SDK_CHANNELS, DB_CHANNELS, HTTP_CHANNELS } from '@shared/ipc/channels'
 import type { RendererApi } from '@shared/ipc/api'
 
 const api: RendererApi = {
@@ -26,6 +26,15 @@ const api: RendererApi = {
     setSecretConfig: (key, value) => ipcRenderer.invoke(DB_CHANNELS.setSecretConfig, key, value),
     deleteSecretConfig: (key) => ipcRenderer.invoke(DB_CHANNELS.deleteSecretConfig, key),
     listSecretConfig: () => ipcRenderer.invoke(DB_CHANNELS.listSecretConfig)
+  },
+  http: {
+    get: (path, opts) => ipcRenderer.invoke(HTTP_CHANNELS.get, path, opts),
+    post: (path, opts) => ipcRenderer.invoke(HTTP_CHANNELS.post, path, opts),
+    put: (path, opts) => ipcRenderer.invoke(HTTP_CHANNELS.put, path, opts),
+    delete: (path, opts) => ipcRenderer.invoke(HTTP_CHANNELS.delete, path, opts),
+    setToken: (token) => ipcRenderer.invoke(HTTP_CHANNELS.setToken, token),
+    setRefreshToken: (token) => ipcRenderer.invoke(HTTP_CHANNELS.setRefreshToken, token),
+    clearTokens: () => ipcRenderer.invoke(HTTP_CHANNELS.clearTokens)
   }
 }
 

@@ -1,12 +1,17 @@
 import { app, ipcMain, BrowserWindow } from 'electron'
 import { join } from 'node:path'
-import { CHANNELS, pingResultSchema, versionResultSchema, SDK_CHANNELS, sdkConfigSchema, sdkSessionSchema, sdkHandleSchema, DB_CHANNELS, dbKeySchema, dbValueSchema } from '@shared/ipc/channels'
+import { CHANNELS, pingResultSchema, versionResultSchema, SDK_CHANNELS, sdkConfigSchema, sdkSessionSchema, sdkHandleSchema, DB_CHANNELS, dbKeySchema, dbValueSchema, HTTP_CHANNELS, httpPathSchema, httpOptionsSchema } from '@shared/ipc/channels'
 import { validate } from '@shared/ipc/validate'
 import { WorkerTransport } from '../sdk-service/transport/worker-transport'
 import { SdkClient } from '../sdk-service/sdk-client'
 import { DbClient } from '../db-service/db-client'
 import { SafeStorageKeyProvider } from '../db-service/key-provider'
 import { DbError, serializeDbError } from '../db-service/errors'
+import { HttpClient } from '../http-client/http-client'
+import { NetTransport } from '../http-client/transport'
+import { DbTokenStore } from '../http-client/token-store'
+import { DbHttpConfig } from '../http-client/config'
+import { HttpError, serializeHttpError } from '../http-client/http-error'
 
 let client: SdkClient | null = null
 
@@ -37,6 +42,40 @@ function ensureDbClient(): Promise<DbClient> {
     })()
   }
   return dbClientPromise
+}
+
+let httpClient: HttpClient | null = null
+let httpClientPromise: Promise<HttpClient> | null = null
+
+function ensureHttpClient(): Promise<HttpClient> {
+  if (!httpClientPromise) {
+    httpClientPromise = (async () => {
+      const db = await ensureDbClient()
+      // db 的 getAppConfig/setAppConfig 为同步方法，AppConfigStore 要求 Promise，故做适配。
+      const configStore = new DbHttpConfig({
+        getAppConfig: async (key) => db.getAppConfig(key),
+        setAppConfig: async (key, value) => db.setAppConfig(key, value)
+      })
+      // db 的 secret 方法名为 getSecretConfig/setSecretConfig（同步），SecretStore 要求 getSecret/setSecret（Promise），故做适配。
+      const tokenStore = new DbTokenStore({
+        getSecret: async (key) => db.getSecretConfig(key),
+        setSecret: async (key, value) => db.setSecretConfig(key, value)
+      })
+      const config = await configStore.load()
+      const c = new HttpClient(new NetTransport(), tokenStore, config)
+      httpClient = c
+      return c
+    })()
+  }
+  return httpClientPromise
+}
+
+const wrapHttp = async <T>(fn: () => Promise<T> | T): Promise<T> => {
+  try {
+    return await fn()
+  } catch (e) {
+    throw e instanceof HttpError ? serializeHttpError(e) : e
+  }
 }
 
 export function registerIpc(): void {
@@ -126,6 +165,50 @@ export function registerIpc(): void {
     wrapAsync(async () => {
       const c = await ensureDbClient()
       return c.listSecretConfig()
+    })
+  )
+
+  // ---- HTTP ----
+  ipcMain.handle(HTTP_CHANNELS.get, (_e, path, opts) =>
+    wrapHttp(async () => {
+      const c = await ensureHttpClient()
+      return c.get(validate(httpPathSchema, path), validate(httpOptionsSchema, opts))
+    })
+  )
+  ipcMain.handle(HTTP_CHANNELS.post, (_e, path, opts) =>
+    wrapHttp(async () => {
+      const c = await ensureHttpClient()
+      return c.post(validate(httpPathSchema, path), validate(httpOptionsSchema, opts))
+    })
+  )
+  ipcMain.handle(HTTP_CHANNELS.put, (_e, path, opts) =>
+    wrapHttp(async () => {
+      const c = await ensureHttpClient()
+      return c.put(validate(httpPathSchema, path), validate(httpOptionsSchema, opts))
+    })
+  )
+  ipcMain.handle(HTTP_CHANNELS.delete, (_e, path, opts) =>
+    wrapHttp(async () => {
+      const c = await ensureHttpClient()
+      return c.delete(validate(httpPathSchema, path), validate(httpOptionsSchema, opts))
+    })
+  )
+  ipcMain.handle(HTTP_CHANNELS.setToken, (_e, token) =>
+    wrapHttp(async () => {
+      const c = await ensureHttpClient()
+      await c.tokens.setToken(token)
+    })
+  )
+  ipcMain.handle(HTTP_CHANNELS.setRefreshToken, (_e, token) =>
+    wrapHttp(async () => {
+      const c = await ensureHttpClient()
+      await c.tokens.setRefreshToken(token)
+    })
+  )
+  ipcMain.handle(HTTP_CHANNELS.clearTokens, () =>
+    wrapHttp(async () => {
+      const c = await ensureHttpClient()
+      await c.tokens.clear()
     })
   )
 }

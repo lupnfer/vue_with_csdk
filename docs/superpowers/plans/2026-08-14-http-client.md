@@ -1328,7 +1328,17 @@ const wrapHttp = async <T>(fn: () => Promise<T> | T): Promise<T> => {
 }
 ```
 
-> 注：`DbHttpConfig(db)` 和 `DbTokenStore(db)` 把 db 当 AppConfigStore/SecretStore 用——DbClient 的 `getAppConfig/setAppConfig/getSecretConfig/setSecretConfig` 方法签名兼容这两个接口（结构化类型）。若 typecheck 报接口不匹配，在 db-client 加适配或用匿名对象包裹。
+> 注：`DbHttpConfig` 和 `DbTokenStore` 把 db 当 AppConfigStore/SecretStore 用，但 DbClient（子计划 3）的方法是**同步**的（`getAppConfig: string | null`），而 AppConfigStore/SecretStore 要求 **async**（`Promise<string|null>`）；且 secret 方法名不一致（db 是 `getSecretConfig`/`setSecretConfig`，SecretStore 要 `getSecret`/`setSecret`）。故两者都需适配：
+> ```ts
+> const configStore = new DbHttpConfig({
+>   getAppConfig: async (key) => db.getAppConfig(key),
+>   setAppConfig: async (key, value) => db.setAppConfig(key, value)
+> })
+> const tokenStore = new DbTokenStore({
+>   getSecret: async (key) => db.getSecretConfig(key),
+>   setSecret: async (key, value) => db.setSecretConfig(key, value)
+> })
+> ```
 
 在 `registerIpc` 内（db handler 之后）加 http handler：
 
