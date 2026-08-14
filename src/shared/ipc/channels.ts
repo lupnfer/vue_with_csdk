@@ -66,3 +66,25 @@ export const dbConfigEntrySchema = z.object({
   updatedAt: z.string()
 })
 export const dbConfigListSchema = z.array(dbConfigEntrySchema)
+
+// ---- HTTP ----
+export const HTTP_CHANNELS = {
+  get: 'http:get',
+  post: 'http:post',
+  put: 'http:put',
+  delete: 'http:delete',
+  setToken: 'http:set-token',
+  setRefreshToken: 'http:set-refresh-token',
+  clearTokens: 'http:clear-tokens'
+} as const
+
+export type HttpChannelName = (typeof HTTP_CHANNELS)[keyof typeof HTTP_CHANNELS]
+
+export const httpPathSchema = z.string().min(1)
+export const httpBodySchema = z.any()
+export const httpHeadersSchema = z.record(z.string(), z.string()).optional()
+export const httpOptionsSchema = z.object({
+  headers: httpHeadersSchema,
+  body: httpBodySchema,
+  timeoutMs: z.number().int().positive().optional()
+}).optional()

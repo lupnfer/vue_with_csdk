@@ -1191,7 +1191,7 @@ export type HttpChannelName = (typeof HTTP_CHANNELS)[keyof typeof HTTP_CHANNELS]
 
 export const httpPathSchema = z.string().min(1)
 export const httpBodySchema = z.any()
-export const httpHeadersSchema = z.record(z.string()).optional()
+export const httpHeadersSchema = z.record(z.string(), z.string()).optional()
 export const httpOptionsSchema = z.object({
   headers: httpHeadersSchema,
   body: httpBodySchema,

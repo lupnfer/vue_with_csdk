@@ -31,9 +31,25 @@ export interface DbApi {
   listSecretConfig(): Promise<{ key: string; value: string; updatedAt: string }[]>
 }
 
+export interface HttpTypedResponse<T = unknown> {
+  status: number
+  body: T
+}
+
+export interface HttpApi {
+  get<T = unknown>(path: string, opts?: { headers?: Record<string, string>; body?: unknown; timeoutMs?: number }): Promise<HttpTypedResponse<T>>
+  post<T = unknown>(path: string, opts?: { headers?: Record<string, string>; body?: unknown; timeoutMs?: number }): Promise<HttpTypedResponse<T>>
+  put<T = unknown>(path: string, opts?: { headers?: Record<string, string>; body?: unknown; timeoutMs?: number }): Promise<HttpTypedResponse<T>>
+  delete<T = unknown>(path: string, opts?: { headers?: Record<string, string>; body?: unknown; timeoutMs?: number }): Promise<HttpTypedResponse<T>>
+  setToken(token: string): Promise<void>
+  setRefreshToken(token: string): Promise<void>
+  clearTokens(): Promise<void>
+}
+
 export interface RendererApi {
   ping(): Promise<{ ok: boolean }>
   getVersion(): Promise<VersionInfo>
   sdk: SdkApi
   db: DbApi
+  http: HttpApi
 }
