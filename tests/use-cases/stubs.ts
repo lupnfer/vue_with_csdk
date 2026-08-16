@@ -1,7 +1,7 @@
 import type { ISdkClient, IDbClient, IHttpClient, Services } from '../../src/main/use-cases/services'
 import type { Session, Handle, SdkConfig, SdkEvent } from '../../src/main/sdk-service/types'
 import type { RequestOptions, TypedResponse } from '../../src/main/http-client/types'
-import { InMemoryTokenStore } from '../../src/main/http-client/token-store'
+import { InMemoryTokenStore, type TokenStore } from '../../src/main/http-client/token-store'
 
 /** FakeSdkClient：startScan 后异步投递预设事件；记录调用；可配置抛错。 */
 export class FakeSdkClient implements ISdkClient {
@@ -79,15 +79,40 @@ export class InMemoryDbClient implements IDbClient {
   }
 }
 
+/** FailingTokenStore：包装 InMemoryTokenStore，可配置 setToken/setRefreshToken 抛错。 */
+export class FailingTokenStore implements TokenStore {
+  private readonly inner = new InMemoryTokenStore()
+  constructor(private readonly fail: boolean) {}
+
+  async getToken(): Promise<string | null> {
+    return this.inner.getToken()
+  }
+  async setToken(token: string): Promise<void> {
+    if (this.fail) throw new Error('http setToken failed')
+    return this.inner.setToken(token)
+  }
+  async getRefreshToken(): Promise<string | null> {
+    return this.inner.getRefreshToken()
+  }
+  async setRefreshToken(token: string): Promise<void> {
+    if (this.fail) throw new Error('http setRefreshToken failed')
+    return this.inner.setRefreshToken(token)
+  }
+  async clear(): Promise<void> {
+    return this.inner.clear()
+  }
+}
+
 /** FakeHttpClient：post 返回预设响应；tokens 是 InMemoryTokenStore；可配置抛错。 */
 export class FakeHttpClient implements IHttpClient {
-  readonly tokens = new InMemoryTokenStore()
+  readonly tokens: TokenStore
   private postResponse: unknown
   private failOn?: string
 
-  constructor(opts?: { failOn?: string; postResponse?: unknown }) {
+  constructor(opts?: { failOn?: string; postResponse?: unknown; failSetToken?: boolean }) {
     this.failOn = opts?.failOn
     this.postResponse = opts?.postResponse ?? { uploaded: true }
+    this.tokens = new FailingTokenStore(!!opts?.failSetToken)
   }
 
   async get<T = unknown>(_path: string, _opts?: RequestOptions): Promise<TypedResponse<T>> {
