@@ -13,5 +13,6 @@ onMounted(() => store.loadVersion())
     <p><RouterLink to="/sdk">SDK POC</RouterLink></p>
     <p><RouterLink to="/db">DB POC</RouterLink></p>
     <p><RouterLink to="/http">HTTP POC</RouterLink></p>
+    <p><RouterLink to="/use-case">Use Case POC</RouterLink></p>
   </main>
 </template>
