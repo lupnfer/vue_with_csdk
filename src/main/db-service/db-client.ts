@@ -5,8 +5,9 @@ import { migrate } from './migrations'
 import { Repositories } from './repositories'
 import { DbError } from './errors'
 import type { ConfigEntry } from './types'
+import type { IDbClient } from '../use-cases/services'
 
-export class DbClient {
+export class DbClient implements IDbClient {
   private db: Database.Database | null = null
   private repos: Repositories | null = null
 

@@ -1,8 +1,9 @@
 import { EventEmitter } from 'node:events'
 import type { Transport } from './transport/worker-transport'
 import type { Session, Handle, SdkConfig, SdkEvent } from './types'
+import type { ISdkClient } from '../use-cases/services'
 
-export class SdkClient {
+export class SdkClient implements ISdkClient {
   private readonly transport: Transport
   private readonly emitter = new EventEmitter()
 

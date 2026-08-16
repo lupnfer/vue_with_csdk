@@ -2,11 +2,12 @@ import type { HttpTransport, HttpRequest, HttpResponse } from './transport'
 import type { TokenStore } from './token-store'
 import type { HttpConfig } from './config'
 import type { RequestOptions, TypedResponse } from './types'
+import type { IHttpClient } from '../use-cases/services'
 import { HttpError, translateTransportError, redactHeaders } from './http-error'
 
 const IDEMPOTENT = new Set(['GET', 'PUT'])
 
-export class HttpClient {
+export class HttpClient implements IHttpClient {
   constructor(
     private readonly transport: HttpTransport,
     readonly tokens: TokenStore,
