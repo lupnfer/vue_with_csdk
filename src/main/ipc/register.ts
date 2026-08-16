@@ -12,6 +12,10 @@ import { NetTransport } from '../http-client/transport'
 import { DbTokenStore } from '../http-client/token-store'
 import { DbHttpConfig } from '../http-client/config'
 import { HttpError, serializeHttpError } from '../http-client/http-error'
+import { USE_CASE_CHANNELS, scanParamsSchema } from '@shared/ipc/channels'
+import { ScanAndUploadUseCase } from '../use-cases/scan-and-upload'
+import { ConfigLoadAuthUseCase } from '../use-cases/config-load-auth'
+import { UseCaseError, serializeUseCaseError } from '../use-cases/errors'
 
 let client: SdkClient | null = null
 
@@ -209,6 +213,38 @@ export function registerIpc(): void {
     wrapHttp(async () => {
       const c = await ensureHttpClient()
       await c.tokens.clear()
+    })
+  )
+
+  // ---- USE_CASE ----
+  const wrapUseCase = async <T>(fn: () => Promise<T> | T): Promise<T> => {
+    try {
+      return await fn()
+    } catch (e) {
+      throw e instanceof UseCaseError ? serializeUseCaseError(e) : e
+    }
+  }
+
+  ipcMain.handle(USE_CASE_CHANNELS.scanAndUpload, (_e, params) =>
+    wrapUseCase(async () => {
+      const services = {
+        sdk: await ensureClient(),
+        db: await ensureDbClient(),
+        http: await ensureHttpClient()
+      }
+      const uc = new ScanAndUploadUseCase(services)
+      return uc.execute(validate(scanParamsSchema, params))
+    })
+  )
+  ipcMain.handle(USE_CASE_CHANNELS.configLoadAuth, () =>
+    wrapUseCase(async () => {
+      const services = {
+        sdk: await ensureClient(),
+        db: await ensureDbClient(),
+        http: await ensureHttpClient()
+      }
+      const uc = new ConfigLoadAuthUseCase(services)
+      return uc.execute()
     })
   )
 }
