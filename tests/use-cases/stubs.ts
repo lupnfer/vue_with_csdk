@@ -47,6 +47,9 @@ export class FakeSdkClient implements ISdkClient {
   on(_event: 'event', cb: (e: SdkEvent) => void): void {
     this.listeners.push(cb)
   }
+  off(_event: 'event', cb: (e: SdkEvent) => void): void {
+    this.listeners = this.listeners.filter((l) => l !== cb)
+  }
 }
 
 /** InMemoryDbClient：内存 Map 存 app_config/secret_config；可配置抛错。 */

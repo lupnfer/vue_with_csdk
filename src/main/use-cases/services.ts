@@ -10,6 +10,7 @@ export interface ISdkClient {
   dispose(handle: Handle): Promise<void>
   disposeSession(session: Session): Promise<void>
   on(event: 'event', cb: (e: SdkEvent) => void): void
+  off(event: 'event', cb: (e: SdkEvent) => void): void
 }
 
 export interface IDbClient {

@@ -217,11 +217,16 @@ export function registerIpc(): void {
   )
 
   // ---- USE_CASE ----
+  // 包裹整个 handler：UseCaseError 序列化；服务初始化抛出的 DbError/HttpError 也序列化
+  // （ensureDbClient/ensureHttpClient 的 open 失败），统一成可跨 IPC 的普通对象。
   const wrapUseCase = async <T>(fn: () => Promise<T> | T): Promise<T> => {
     try {
       return await fn()
     } catch (e) {
-      throw e instanceof UseCaseError ? serializeUseCaseError(e) : e
+      if (e instanceof UseCaseError) throw serializeUseCaseError(e)
+      if (e instanceof DbError) throw serializeDbError(e)
+      if (e instanceof HttpError) throw serializeHttpError(e)
+      throw e
     }
   }
 

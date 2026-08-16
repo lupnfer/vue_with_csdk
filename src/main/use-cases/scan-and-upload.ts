@@ -14,6 +14,7 @@ export class ScanAndUploadUseCase {
     let session: Session | null = null
     let handle: Handle | null = null
     const events: SdkEvent[] = []
+    let listener: ((e: SdkEvent) => void) | null = null
 
     try {
       // 1. sdk.init
@@ -28,8 +29,11 @@ export class ScanAndUploadUseCase {
       } catch (e) {
         throw wrapServiceError(e, 'sdk')
       }
-      // 3. 注册事件收集
-      sdk.on('event', (e) => events.push(e))
+      // 3. 注册事件收集（保存引用，finally 中移除，防监听器泄漏）
+      listener = (e: SdkEvent): void => {
+        events.push(e)
+      }
+      sdk.on('event', listener)
       // 4. sdk.startScan
       try {
         await sdk.startScan(handle)
@@ -63,7 +67,10 @@ export class ScanAndUploadUseCase {
       // 8. 返回
       return { sessionId: session.id, handleId: handle.id, events, uploaded, uploadResponse }
     } finally {
-      // 清理：无论成功失败都 dispose（防句柄泄漏）
+      // 清理：无论成功失败都移除监听器 + dispose（防监听器与句柄泄漏）
+      if (listener) {
+        try { sdk.off('event', listener) } catch { /* 清理失败不覆盖原错误 */ }
+      }
       if (handle) {
         try { await sdk.dispose(handle) } catch { /* 清理失败不覆盖原错误 */ }
       }

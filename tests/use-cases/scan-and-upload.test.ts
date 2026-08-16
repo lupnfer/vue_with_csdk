@@ -48,4 +48,18 @@ describe('ScanAndUploadUseCase', () => {
     await expect(uc.execute({ sdkConfig, uploadUrl: '/upload' })).rejects.toMatchObject({ category: 'http' })
     expect((services.sdk as FakeSdkClient).calls).toContain('dispose')
   })
+
+  it('成功后移除事件监听器（防泄漏）', async () => {
+    const services = makeServices()
+    const uc = new ScanAndUploadUseCase(services)
+    const sdk = services.sdk as FakeSdkClient
+
+    await uc.execute({ sdkConfig, uploadUrl: '/upload' })
+
+    // execute 完成后监听器应被移除（FakeSdkClient.off 过滤了它）
+    // 间接验证：再 startScan 不会把事件推到旧的 events 数组（已无监听器）
+    expect(sdk.calls).toContain('dispose')
+    // 直接验证 listeners 被清空
+    expect((sdk as unknown as { listeners: unknown[] }).listeners).toHaveLength(0)
+  })
 })

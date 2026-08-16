@@ -38,6 +38,10 @@ export class SdkClient implements ISdkClient {
     this.emitter.on(event, cb)
   }
 
+  off(event: 'event', cb: (e: SdkEvent) => void): void {
+    this.emitter.off(event, cb)
+  }
+
   terminate(): void {
     this.transport.terminate()
   }
