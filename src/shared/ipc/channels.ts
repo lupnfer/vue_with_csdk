@@ -88,3 +88,16 @@ export const httpOptionsSchema = z.object({
   body: httpBodySchema,
   timeoutMs: z.number().int().positive().optional()
 }).optional()
+
+// ---- USE_CASE ----
+export const USE_CASE_CHANNELS = {
+  scanAndUpload: 'use-case:scan-and-upload',
+  configLoadAuth: 'use-case:config-load-auth'
+} as const
+
+export type UseCaseChannelName = (typeof USE_CASE_CHANNELS)[keyof typeof USE_CASE_CHANNELS]
+
+export const scanParamsSchema = z.object({
+  sdkConfig: sdkConfigSchema,
+  uploadUrl: z.string().min(1)
+})

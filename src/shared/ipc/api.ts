@@ -1,4 +1,5 @@
 import type { VersionInfo } from './channels'
+import type { ScanResult, AppBootstrap } from '../../main/use-cases/types'
 
 export interface SdkConfig {
   mode: number
@@ -46,10 +47,16 @@ export interface HttpApi {
   clearTokens(): Promise<void>
 }
 
+export interface UseCaseApi {
+  scanAndUpload(params: { sdkConfig: { mode: number; logger: { level: number; prefix: string } }; uploadUrl: string }): Promise<ScanResult>
+  configLoadAuth(): Promise<AppBootstrap>
+}
+
 export interface RendererApi {
   ping(): Promise<{ ok: boolean }>
   getVersion(): Promise<VersionInfo>
   sdk: SdkApi
   db: DbApi
   http: HttpApi
+  useCase: UseCaseApi
 }
