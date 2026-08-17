@@ -12,10 +12,14 @@
     "test": "vitest run",
     "test:integration": "npm run build:mock && npm run build && vitest run --config vitest.config.integration.ts",
     "test:all": "npm run test && npm run test:integration",
-    "build:mock": "make -C mock-sdk/c"
+    "build:mock": "make -C mock-sdk/c",
+    "rebuild:electron": "electron-rebuild -f -w better-sqlite3-multiple-ciphers",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run rebuild:electron && npm run build -- --mode=production && electron-builder --win --x64"
   },
   "dependencies": {
     "better-sqlite3-multiple-ciphers": "^13.0.3",
+    "electron-log": "^5.4.4",
     "koffi": "^3.1.4",
     "pinia": "^4.0.2",
     "vue": "^3.5.41",
@@ -23,10 +27,12 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
     "@types/node": "^26.2.0",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/test-utils": "^2.4.11",
     "electron": "^43.4.0",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "jsdom": "^29.1.1",
     "typescript": "~5.9.3",

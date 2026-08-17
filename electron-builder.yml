@@ -1,0 +1,29 @@
+appId: com.code-reader.client
+productName: Code Reader Client
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+extraResources:
+  - from: c_sdk_lib/x64/HWPuSDK.dll
+    to: native/HWPuSDK.dll
+  - from: c_sdk_lib/x64/IVS_PU_Player.dll
+    to: native/IVS_PU_Player.dll
+  - from: c_sdk_lib/x64/cert/
+    to: native/cert/
+asarUnpack:
+  - node_modules/better-sqlite3-multiple-ciphers/**
+  - node_modules/koffi/**
+win:
+  target:
+    - target: nsis
+      arch: x64
+  icon: build/icon.ico
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
