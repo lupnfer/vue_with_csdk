@@ -2,7 +2,7 @@
 
 - 日期：2026-08-17
 - 状态：待审阅
-- 需求来源：`docs/superpowers/specs/2026-08-11-code-reader-client-design.md` §8、§10、§11
+- 需求来源：`docs/specs/2026-08-11-code-reader-client-design.md` §8、§10、§11
 - 上游产物：子计划 1-5 + 真实 SDK 集成，均已合并到 main
 - 范围：子计划 6/6
 

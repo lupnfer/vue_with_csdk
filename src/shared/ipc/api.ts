@@ -1,5 +1,4 @@
 import type { VersionInfo } from './channels'
-import type { ScanResult, AppBootstrap } from '../../main/use-cases/types'
 
 export interface SdkConfig {
   mode: number
@@ -47,6 +46,20 @@ export interface HttpApi {
   setRefreshToken(token: string): Promise<void>
   clearTokens(): Promise<void>
   setConfig(config: { baseUrl: string; refreshUrl: string; timeoutMs?: number; maxRetries?: number }): Promise<void>
+}
+
+// 内联类型（与 src/main/use-cases/types.ts 结构相同，靠 TS 结构化类型互通）
+// 不从 main 层 import，消除 shared → main 反向依赖
+export interface ScanResult {
+  sessionId: number
+  handleId: number
+  events: { handleId: number; eventType: number; payload: string }[]
+  uploaded: boolean
+  uploadResponse?: unknown
+}
+
+export interface AppBootstrap {
+  sdkSession?: { id: number }
 }
 
 export interface UseCaseApi {

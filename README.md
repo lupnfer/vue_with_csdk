@@ -53,9 +53,10 @@ code_reader_client/
 │       ├── HWPuSDK.dll / .h / .lib   # 真实 SDK
 │       └── cert/                     # 证书目录（cacert.cer / cert.pem / key.pem）
 │
-├── docs/superpowers/                 # 设计文档与实施计划
+├── docs/                             # 设计文档与实施计划
 │   ├── specs/                        # 各子计划的设计 spec
-│   └── plans/                        # 各子计划的分步实施计划
+│   ├── plans/                        # 各子计划的分步实施计划
+│   └── require.md                    # 原始需求文档 + 框架选型对比
 │
 ├── src/
 │   ├── main/                         # ── 主进程 ──

@@ -2,7 +2,7 @@
 
 - 日期：2026-08-13
 - 状态：待审阅
-- 需求来源：`docs/superpowers/specs/2026-08-11-code-reader-client-design.md` §5、§11
+- 需求来源：`docs/specs/2026-08-11-code-reader-client-design.md` §5、§11
 - 上游产物：子计划 1/6（工程脚手架）、2/6（sdk-service POC），均已合并到 main
 - 范围：子计划 3/6
 

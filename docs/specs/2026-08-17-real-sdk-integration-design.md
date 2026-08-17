@@ -2,7 +2,7 @@
 
 - 日期：2026-08-17
 - 状态：待审阅
-- 需求来源：`c_sdk_lib/x64/HWPuSDK.h`（HoloSens SDC SDK）、`docs/superpowers/specs/2026-08-11-code-reader-client-design.md` §4
+- 需求来源：`c_sdk_lib/x64/HWPuSDK.h`（HoloSens SDC SDK）、`docs/specs/2026-08-11-code-reader-client-design.md` §4
 - 上游产物：子计划 1-5（脚手架/sdk-service POC/db-service/http-client/use-cases），均已合并到 main
 - 范围：真实 SDK 初始化 + 日志回调 + 二层搜索集成
 
