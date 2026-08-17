@@ -31,3 +31,6 @@ logs/
 
 # Mock SDK build output
 mock-sdk/build/
+
+# Real SDK (too large for git, distribute separately)
+c_sdk_lib/
