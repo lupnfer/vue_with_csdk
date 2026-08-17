@@ -113,6 +113,10 @@ export function registerIpc(): void {
     const { id } = validate(sdkSessionSchema, { id: sessionId })
     return ensureClient().disposeSession({ id })
   })
+  ipcMain.handle(SDK_CHANNELS.discover, async () => {
+    const c = ensureClient()
+    return c.discover()
+  })
 
   // 包裹整个 handler（含 ensureDbClient 的 open 失败）：DbError 序列化为可跨 IPC 的普通对象。
   const wrapAsync = async <T>(fn: () => Promise<T> | T): Promise<T> => {

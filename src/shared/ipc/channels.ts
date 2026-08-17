@@ -26,6 +26,7 @@ export const SDK_CHANNELS = {
   startScan: 'sdk:start-scan',
   dispose: 'sdk:dispose',
   disposeSession: 'sdk:dispose-session',
+  discover: 'sdk:discover',
   event: 'sdk-events'
 } as const
 
@@ -43,6 +44,21 @@ export const sdkEventSchema = z.object({
   eventType: z.number().int(),
   payload: z.string()
 })
+
+export const discoveredDeviceSchema = z.object({
+  mac: z.string(),
+  type: z.string(),
+  version: z.string(),
+  name: z.string(),
+  ip: z.string(),
+  mask: z.string(),
+  gateway: z.string(),
+  serialNumber: z.string(),
+  dhcpEnabled: z.number(),
+  publicVersion: z.string(),
+  isActive: z.boolean()
+})
+export const discoveredDeviceListSchema = z.array(discoveredDeviceSchema)
 
 // ---- DB ----
 export const DB_CHANNELS = {

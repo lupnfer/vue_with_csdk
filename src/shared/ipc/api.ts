@@ -18,6 +18,7 @@ export interface SdkApi {
   startScan(handleId: number): Promise<void>
   dispose(handleId: number): Promise<void>
   disposeSession(sessionId: number): Promise<void>
+  discover(): Promise<{ mac: string; type: string; version: string; name: string; ip: string; mask: string; gateway: string; serialNumber: string; dhcpEnabled: number; publicVersion: string; isActive: boolean }[]>
   on(event: 'event', cb: (e: SdkEvent) => void): () => void
 }
 

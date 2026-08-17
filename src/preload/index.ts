@@ -11,6 +11,7 @@ const api: RendererApi = {
     startScan: (handleId) => ipcRenderer.invoke(SDK_CHANNELS.startScan, handleId),
     dispose: (handleId) => ipcRenderer.invoke(SDK_CHANNELS.dispose, handleId),
     disposeSession: (sessionId) => ipcRenderer.invoke(SDK_CHANNELS.disposeSession, sessionId),
+    discover: () => ipcRenderer.invoke(SDK_CHANNELS.discover),
     on: (event, cb) => {
       const handler = (_e: unknown, data: Parameters<typeof cb>[0]): void => cb(data)
       ipcRenderer.on(SDK_CHANNELS.event, handler)
