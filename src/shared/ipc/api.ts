@@ -46,6 +46,7 @@ export interface HttpApi {
   setToken(token: string): Promise<void>
   setRefreshToken(token: string): Promise<void>
   clearTokens(): Promise<void>
+  setConfig(config: { baseUrl: string; refreshUrl: string; timeoutMs?: number; maxRetries?: number }): Promise<void>
 }
 
 export interface UseCaseApi {

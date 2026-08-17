@@ -91,7 +91,8 @@ export const HTTP_CHANNELS = {
   delete: 'http:delete',
   setToken: 'http:set-token',
   setRefreshToken: 'http:set-refresh-token',
-  clearTokens: 'http:clear-tokens'
+  clearTokens: 'http:clear-tokens',
+  setConfig: 'http:set-config'
 } as const
 
 export type HttpChannelName = (typeof HTTP_CHANNELS)[keyof typeof HTTP_CHANNELS]
@@ -104,6 +105,13 @@ export const httpOptionsSchema = z.object({
   body: httpBodySchema,
   timeoutMs: z.number().int().positive().optional()
 }).optional()
+
+export const httpConfigSchema = z.object({
+  baseUrl: z.string(),
+  refreshUrl: z.string(),
+  timeoutMs: z.number().int().positive().optional(),
+  maxRetries: z.number().int().positive().optional()
+})
 
 // ---- USE_CASE ----
 export const USE_CASE_CHANNELS = {

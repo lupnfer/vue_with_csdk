@@ -1,6 +1,6 @@
 import { app, ipcMain, BrowserWindow } from 'electron'
 import { join } from 'node:path'
-import { CHANNELS, pingResultSchema, versionResultSchema, SDK_CHANNELS, sdkConfigSchema, sdkSessionSchema, sdkHandleSchema, DB_CHANNELS, dbKeySchema, dbValueSchema, HTTP_CHANNELS, httpPathSchema, httpOptionsSchema } from '@shared/ipc/channels'
+import { CHANNELS, pingResultSchema, versionResultSchema, SDK_CHANNELS, sdkConfigSchema, sdkSessionSchema, sdkHandleSchema, DB_CHANNELS, dbKeySchema, dbValueSchema, HTTP_CHANNELS, httpPathSchema, httpOptionsSchema, httpConfigSchema } from '@shared/ipc/channels'
 import { validate } from '@shared/ipc/validate'
 import { WorkerTransport } from '../sdk-service/transport/worker-transport'
 import { SdkClient } from '../sdk-service/sdk-client'
@@ -221,6 +221,18 @@ export function registerIpc(): void {
     wrapHttp(async () => {
       const c = await ensureHttpClient()
       await c.tokens.clear()
+    })
+  )
+  ipcMain.handle(HTTP_CHANNELS.setConfig, (_e, config) =>
+    wrapHttp(async () => {
+      const db = await ensureDbClient()
+      const configStore = new DbHttpConfig({
+        getAppConfig: async (key) => db.getAppConfig(key),
+        setAppConfig: async (key, value) => db.setAppConfig(key, value)
+      })
+      await configStore.set(validate(httpConfigSchema, config))
+      httpClient = null
+      httpClientPromise = null
     })
   )
 

@@ -35,7 +35,8 @@ const api: RendererApi = {
     delete: (path, opts) => ipcRenderer.invoke(HTTP_CHANNELS.delete, path, opts),
     setToken: (token) => ipcRenderer.invoke(HTTP_CHANNELS.setToken, token),
     setRefreshToken: (token) => ipcRenderer.invoke(HTTP_CHANNELS.setRefreshToken, token),
-    clearTokens: () => ipcRenderer.invoke(HTTP_CHANNELS.clearTokens)
+    clearTokens: () => ipcRenderer.invoke(HTTP_CHANNELS.clearTokens),
+    setConfig: (config) => ipcRenderer.invoke(HTTP_CHANNELS.setConfig, config)
   },
   useCase: {
     scanAndUpload: (params) => ipcRenderer.invoke(USE_CASE_CHANNELS.scanAndUpload, params),
