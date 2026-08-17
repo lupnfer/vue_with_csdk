@@ -3,6 +3,7 @@ import type { TokenStore } from './token-store'
 import type { HttpConfig } from './config'
 import type { RequestOptions, TypedResponse } from './types'
 import type { IHttpClient } from '../use-cases/services'
+import log from 'electron-log'
 import { HttpError, translateTransportError, redactHeaders } from './http-error'
 
 const IDEMPOTENT = new Set(['GET', 'PUT'])
@@ -155,7 +156,7 @@ export class HttpClient implements IHttpClient {
 
   private logError(method: string, path: string, err: HttpError, attempt: number): void {
     // 日志只含脱敏信息，绝不出现 token（Authorization 头不在此日志里）
-    console.debug(`[http] ${method} ${path} attempt=${attempt} failed: ${err.kind} ${err.status ?? ''} ${err.message}`)
+    log.warn(`[http] ${method} ${path} attempt=${attempt} failed: ${err.kind} ${err.status ?? ''} ${err.message}`)
   }
 }
 

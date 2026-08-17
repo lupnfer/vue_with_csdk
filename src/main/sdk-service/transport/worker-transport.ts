@@ -1,6 +1,7 @@
 import { Worker } from 'node:worker_threads'
 import { join } from 'node:path'
 import { EventEmitter } from 'node:events'
+import log from 'electron-log'
 import type { InvokeMessage, WorkerOutbound } from './types'
 import { deserializeError, type SerializedError } from '../errors'
 
@@ -26,6 +27,12 @@ export class WorkerTransport implements Transport {
 
   private handleMessage(msg: WorkerOutbound): void {
     if (msg.type === 'event') {
+      const data = msg.data as { kind?: string } | undefined
+      if (data?.kind === 'log') {
+        const logData = msg.data as { level: number; file: string; line: number; msg: string }
+        log.debug(`[SDK] [L${logData.level}] ${logData.file}:${logData.line} ${logData.msg}`)
+        return
+      }
       this.emitter.emit('data', msg.data)
       return
     }
