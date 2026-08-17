@@ -33,3 +33,14 @@ npm test
 - `src/renderer` — Vue 3 前端
 - `src/shared` — 主/渲染共享的 IPC 契约与校验
 - `tests` — Vitest 测试
+
+## Windows 打包（Windows 环境）
+
+1. 确保证书文件在 `c_sdk_lib/x64/cert/`（`cacert.cer`、`cert.pem`、`key.pem`）
+2. `npm install`
+3. `npm run rebuild:electron`（把 native 模块编译成 Electron ABI）
+4. `npm run dist:win`（一键打包：rebuild → build → electron-builder NSIS）
+5. 产出 `release/` 目录下的 NSIS 安装包
+
+> macOS 开发机不可跑 `rebuild:electron`（需 Windows 编译环境）。
+> 测试在 macOS 用 `npm test`（Node ABI，不需 rebuild）。
