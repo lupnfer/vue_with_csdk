@@ -35,6 +35,10 @@ function ensureClient(): SdkClient {
 let dbClient: DbClient | null = null
 let dbClientPromise: Promise<DbClient> | null = null
 
+export function getDbClient(): DbClient | null {
+  return dbClient
+}
+
 function ensureDbClient(): Promise<DbClient> {
   if (!dbClientPromise) {
     dbClientPromise = (async () => {

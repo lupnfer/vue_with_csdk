@@ -1,7 +1,9 @@
 import { app, BrowserWindow, session } from 'electron'
 import { join } from 'node:path'
+import log from 'electron-log'
 import { createWebPreferences, buildCsp } from './security'
-import { registerIpc } from './ipc/register'
+import { registerIpc, getDbClient } from './ipc/register'
+import { selectBinding } from './sdk-service/binding-selector'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -35,6 +37,11 @@ function applyCsp(): void {
   })
 }
 
+log.transports.file.resolvePathFn = () => join(app.getPath('userData'), 'logs', 'main.log')
+log.transports.file.maxSize = 10 * 1024 * 1024
+log.transports.console.level = 'debug'
+log.info('[app] starting', app.getVersion())
+
 const gotLock = app.requestSingleInstanceLock()
 
 if (!gotLock) {
@@ -53,5 +60,31 @@ if (!gotLock) {
 
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
+  })
+
+  let isQuitting = false
+
+  app.on('before-quit', (event) => {
+    if (isQuitting) return
+    event.preventDefault()
+    isQuitting = true
+    void (async () => {
+      try {
+        const db = getDbClient()
+        if (db) {
+          db.close()
+          log.info('[app] database closed')
+        }
+      } catch (e) {
+        log.error('[app] error closing database:', e)
+      }
+      try {
+        selectBinding().cleanup()
+        log.info('[app] sdk cleaned up')
+      } catch (e) {
+        log.error('[app] error cleaning up sdk:', e)
+      }
+      app.exit(0)
+    })()
   })
 }
