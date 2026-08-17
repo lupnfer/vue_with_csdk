@@ -1,4 +1,4 @@
-import type { Session, Handle, SdkConfig, SdkEvent } from '../sdk-service/types'
+import type { Session, Handle, SdkConfig, SdkEvent, DiscoveredDevice } from '../sdk-service/types'
 import type { ConfigEntry } from '../db-service/types'
 import type { RequestOptions, TypedResponse } from '../http-client/types'
 import type { TokenStore } from '../http-client/token-store'
@@ -9,6 +9,7 @@ export interface ISdkClient {
   startScan(handle: Handle): Promise<void>
   dispose(handle: Handle): Promise<void>
   disposeSession(session: Session): Promise<void>
+  discover(): Promise<DiscoveredDevice[]>
   on(event: 'event', cb: (e: SdkEvent) => void): void
   off(event: 'event', cb: (e: SdkEvent) => void): void
 }

@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 import type { Transport } from './transport/worker-transport'
-import type { Session, Handle, SdkConfig, SdkEvent } from './types'
+import type { Session, Handle, SdkConfig, SdkEvent, DiscoveredDevice } from './types'
 import type { ISdkClient } from '../use-cases/services'
 
 export class SdkClient implements ISdkClient {
@@ -32,6 +32,10 @@ export class SdkClient implements ISdkClient {
 
   disposeSession(session: Session): Promise<void> {
     return this.transport.invoke<void>('close', [session.id])
+  }
+
+  async discover(): Promise<DiscoveredDevice[]> {
+    return this.transport.invoke<DiscoveredDevice[]>('discover', [])
   }
 
   on(event: 'event', cb: (e: SdkEvent) => void): void {

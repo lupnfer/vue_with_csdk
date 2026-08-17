@@ -9,8 +9,12 @@ import {
   registerCallback,
   unregisterCallback
 } from '../binding'
+import { selectBinding } from '../binding-selector'
 import type { InvokeMessage, ResultMessage, EventMessage } from '../transport/types'
 import { translateError, serializeError, type SdkErrorCategory, type SerializedError } from '../errors'
+
+// binding 选择：CRC_SDK_MODE=real 用真实 SDK，否则 mock。worker 内单例。
+const sdkBinding = selectBinding()
 
 // id ↔ 指针 注册表（指针只在 worker 内持有与释放）
 const sessions = new Map<number, unknown>()     // id → session ptr
@@ -153,6 +157,34 @@ parentPort?.on('message', (msg: InvokeMessage) => {
         handles.clear()
         sessions.clear()
         ok(msg.id, { handles: leakedHandles.length, sessions: leakedSessions.length })
+        break
+      }
+      case 'discover': {
+        try {
+          const devices = sdkBinding.discoverLocalDevices()
+          ok(msg.id, devices)
+        } catch (e) {
+          fail(msg.id, {
+            code: 'SDK_CALL_FAILED',
+            category: 'call',
+            message: e instanceof Error ? e.message : String(e),
+            retryable: false
+          })
+        }
+        break
+      }
+      case 'cleanup': {
+        try {
+          sdkBinding.cleanup()
+          ok(msg.id, null)
+        } catch (e) {
+          fail(msg.id, {
+            code: 'SDK_CALL_FAILED',
+            category: 'call',
+            message: e instanceof Error ? e.message : String(e),
+            retryable: false
+          })
+        }
         break
       }
       default: {

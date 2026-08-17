@@ -1,5 +1,5 @@
 import type { ISdkClient, IDbClient, IHttpClient, Services } from '../../src/main/use-cases/services'
-import type { Session, Handle, SdkConfig, SdkEvent } from '../../src/main/sdk-service/types'
+import type { Session, Handle, SdkConfig, SdkEvent, DiscoveredDevice } from '../../src/main/sdk-service/types'
 import type { RequestOptions, TypedResponse } from '../../src/main/http-client/types'
 import { InMemoryTokenStore, type TokenStore } from '../../src/main/http-client/token-store'
 
@@ -43,6 +43,10 @@ export class FakeSdkClient implements ISdkClient {
   }
   async disposeSession(_session: Session): Promise<void> {
     this.calls.push('disposeSession')
+  }
+  async discover(): Promise<DiscoveredDevice[]> {
+    this.calls.push('discover')
+    return []
   }
   on(_event: 'event', cb: (e: SdkEvent) => void): void {
     this.listeners.push(cb)
