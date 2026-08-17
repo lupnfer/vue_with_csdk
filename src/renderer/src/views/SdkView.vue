@@ -44,6 +44,7 @@ async function runDiscover(): Promise<void> {
 <template>
   <main>
     <h1>SDK POC</h1>
+    <p><RouterLink to="/">← 返回首页</RouterLink></p>
     <button @click="run">运行 init → open → startScan</button>
     <button @click="runDiscover">搜索局域网设备</button>
     <p v-if="error" style="color: red">{{ error }}</p>

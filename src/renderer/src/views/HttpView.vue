@@ -27,6 +27,7 @@ async function setToken(): Promise<void> {
 <template>
   <main>
     <h1>HTTP POC</h1>
+    <p><RouterLink to="/">← 返回首页</RouterLink></p>
     <p v-if="error" style="color: red">{{ error }}</p>
     <select v-model="method">
       <option value="get">GET</option>

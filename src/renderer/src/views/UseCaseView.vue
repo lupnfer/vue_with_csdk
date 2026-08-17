@@ -33,6 +33,7 @@ async function runBootstrap(): Promise<void> {
 <template>
   <main>
     <h1>Use Case POC</h1>
+    <p><RouterLink to="/">← 返回首页</RouterLink></p>
     <p v-if="error" style="color: red">{{ error }}</p>
     <button @click="runBootstrap">配置加载与鉴权</button>
     <button @click="runScan">扫描并上传</button>

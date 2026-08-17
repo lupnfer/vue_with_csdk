@@ -63,6 +63,7 @@ async function getSecret(): Promise<void> {
 <template>
   <main>
     <h1>DB POC</h1>
+    <p><RouterLink to="/">← 返回首页</RouterLink></p>
     <p v-if="error" style="color: red">{{ error }}</p>
 
     <section>
