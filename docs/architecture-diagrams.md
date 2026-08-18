@@ -100,11 +100,11 @@ classDiagram
 
 ```mermaid
 sequenceDiagram
-    participant R as Electron进程::Renderer
-    participant P as Electron进程::Preload
-    participant M as Electron进程::Main::SdkClient
-    participant T as Electron进程::Main::WorkerTransport
-    participant W as Electron进程::Main::Worker
+    participant R as Renderer
+    participant P as Preload
+    participant M as Main::SdkClient
+    participant T as Main::WorkerTransport
+    participant W as Main::Worker
     participant B as SdkBinding
     participant DLL as HWPuSDK.dll
 
@@ -128,10 +128,10 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant R as Electron进程::Renderer
-    participant M as Electron进程::Main::SdkClient
-    participant T as Electron进程::Main::WorkerTransport
-    participant W as Electron进程::Main::Worker
+    participant R as Renderer
+    participant M as Main::SdkClient
+    participant T as Main::WorkerTransport
+    participant W as Main::Worker
     participant B as MockBinding
     participant C as mock C 库
 
@@ -312,13 +312,13 @@ erDiagram
 
 ```mermaid
 sequenceDiagram
-    participant R as Electron进程::Renderer
-    participant M as Electron进程::Main::DbClient
-    participant K as Electron进程::Main::KeyProvider
-    participant D as Electron进程::Main::openEncryptedDb
-    participant Mig as Electron进程::Main::Migrations
-    participant Repo as Electron进程::Main::Repositories
-    participant FC as Electron进程::Main::FieldCipher
+    participant R as Renderer
+    participant M as Main::DbClient
+    participant K as Main::KeyProvider
+    participant D as Main::openEncryptedDb
+    participant Mig as Main::Migrations
+    participant Repo as Main::Repositories
+    participant FC as Main::FieldCipher
     participant DB as SQLite
 
     R->>M: db.setSecretConfig('token', 'secret-val')
@@ -355,9 +355,9 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant M as Electron进程::Main::DbClient
-    participant K as Electron进程::Main::KeyProvider
-    participant D as Electron进程::Main::openEncryptedDb
+    participant M as Main::DbClient
+    participant K as Main::KeyProvider
+    participant D as Main::openEncryptedDb
     participant DB as SQLite
 
     M->>K: loadKeys()
@@ -474,10 +474,10 @@ classDiagram
 
 ```mermaid
 sequenceDiagram
-    participant R as Electron进程::Renderer
-    participant H as Electron进程::Main::HttpClient
-    participant T as Electron进程::Main::HttpTransport
-    participant TS as Electron进程::Main::TokenStore
+    participant R as Renderer
+    participant H as Main::HttpClient
+    participant T as Main::HttpTransport
+    participant TS as Main::TokenStore
 
     R->>H: get('/users')
     H->>TS: getToken()
@@ -498,11 +498,11 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant R1 as Electron进程::Renderer::请求A
-    participant R2 as Electron进程::Renderer::请求B
-    participant H as Electron进程::Main::HttpClient
-    participant T as Electron进程::Main::HttpTransport
-    participant TS as Electron进程::Main::TokenStore
+    participant R1 as Renderer::请求A
+    participant R2 as Renderer::请求B
+    participant H as Main::HttpClient
+    participant T as Main::HttpTransport
+    participant TS as Main::TokenStore
 
     par 请求 A
         R1->>H: get('/data')
@@ -538,9 +538,9 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant R as Electron进程::Renderer
-    participant H as Electron进程::Main::HttpClient
-    participant T as Electron进程::Main::HttpTransport
+    participant R as Renderer
+    participant H as Main::HttpClient
+    participant T as Main::HttpTransport
 
     R->>H: post('/items', { body: { name: 'x' } })
     H->>H: buildRequest: JSON.stringify body + Content-Type
@@ -557,11 +557,11 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant R as Electron进程::Renderer
-    participant Reg as Electron进程::Main::Register
-    participant DB as Electron进程::Main::DbClient
-    participant HC as Electron进程::Main::HttpClient(旧)
-    participant HC2 as Electron进程::Main::HttpClient(新)
+    participant R as Renderer
+    participant Reg as Main::Register
+    participant DB as Main::DbClient
+    participant HC as Main::HttpClient(旧)
+    participant HC2 as Main::HttpClient(新)
 
     R->>Reg: http.setConfig({ baseUrl: 'http://new-api' })
     Reg->>DB: getAppConfig('http_config')
