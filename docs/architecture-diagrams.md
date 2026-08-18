@@ -33,13 +33,13 @@ graph TB
         end
     end
 
-    SDK --> W : invoke / on
-    W --> SDK : MessagePort 回调
-    REG --> SDK : 调用
-    REG --> DB : 调用
-    REG --> HTTP : 调用
-    REG <-->|IPC ipcMain| CB : ipcRenderer.invoke
-    CB --> VUE : window.api.* 暴露
+    SDK -->|invoke / on| W
+    W -->|MessagePort 回调| SDK
+    REG --> SDK
+    REG --> DB
+    REG --> HTTP
+    REG <-->|IPC| CB
+    CB --> VUE
 ```
 
 - Main 进程与 Renderer 进程之间通过 **IPC**（`ipcMain.handle` ↔ `ipcRenderer.invoke`）通信
