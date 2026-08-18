@@ -100,11 +100,11 @@ classDiagram
 
 ```mermaid
 sequenceDiagram
-    participant R as 渲染进程
-    participant P as Preload
-    participant M as 主进程 SdkClient
-    participant T as WorkerTransport
-    participant W as SdkWorker
+    participant R as Electron进程::Renderer
+    participant P as Electron进程::Preload
+    participant M as Electron进程::Main::SdkClient
+    participant T as Electron进程::Main::WorkerTransport
+    participant W as Electron进程::Main::Worker
     participant B as SdkBinding
     participant DLL as HWPuSDK.dll
 
@@ -128,10 +128,10 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant R as 渲染进程
-    participant M as 主进程 SdkClient
-    participant T as WorkerTransport
-    participant W as SdkWorker
+    participant R as Electron进程::Renderer
+    participant M as Electron进程::Main::SdkClient
+    participant T as Electron进程::Main::WorkerTransport
+    participant W as Electron进程::Main::Worker
     participant B as MockBinding
     participant C as mock C 库
 
@@ -312,13 +312,13 @@ erDiagram
 
 ```mermaid
 sequenceDiagram
-    participant R as 渲染进程
-    participant M as 主进程 DbClient
-    participant K as KeyProvider
-    participant D as openEncryptedDb
-    participant Mig as Migrations
-    participant Repo as Repositories
-    participant FC as FieldCipher
+    participant R as Electron进程::Renderer
+    participant M as Electron进程::Main::DbClient
+    participant K as Electron进程::Main::KeyProvider
+    participant D as Electron进程::Main::openEncryptedDb
+    participant Mig as Electron进程::Main::Migrations
+    participant Repo as Electron进程::Main::Repositories
+    participant FC as Electron进程::Main::FieldCipher
     participant DB as SQLite
 
     R->>M: db.setSecretConfig('token', 'secret-val')
@@ -355,9 +355,9 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant M as DbClient
-    participant K as KeyProvider
-    participant D as openEncryptedDb
+    participant M as Electron进程::Main::DbClient
+    participant K as Electron进程::Main::KeyProvider
+    participant D as Electron进程::Main::openEncryptedDb
     participant DB as SQLite
 
     M->>K: loadKeys()
@@ -474,10 +474,10 @@ classDiagram
 
 ```mermaid
 sequenceDiagram
-    participant R as 渲染进程
-    participant H as HttpClient
-    participant T as Transport
-    participant TS as TokenStore
+    participant R as Electron进程::Renderer
+    participant H as Electron进程::Main::HttpClient
+    participant T as Electron进程::Main::HttpTransport
+    participant TS as Electron进程::Main::TokenStore
 
     R->>H: get('/users')
     H->>TS: getToken()
@@ -498,11 +498,11 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant R1 as 请求 A
-    participant R2 as 请求 B
-    participant H as HttpClient
-    participant T as Transport
-    participant TS as TokenStore
+    participant R1 as Electron进程::Renderer::请求A
+    participant R2 as Electron进程::Renderer::请求B
+    participant H as Electron进程::Main::HttpClient
+    participant T as Electron进程::Main::HttpTransport
+    participant TS as Electron进程::Main::TokenStore
 
     par 请求 A
         R1->>H: get('/data')
@@ -538,9 +538,9 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant R as 渲染进程
-    participant H as HttpClient
-    participant T as Transport
+    participant R as Electron进程::Renderer
+    participant H as Electron进程::Main::HttpClient
+    participant T as Electron进程::Main::HttpTransport
 
     R->>H: post('/items', { body: { name: 'x' } })
     H->>H: buildRequest: JSON.stringify body + Content-Type
@@ -557,11 +557,11 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant R as 渲染进程
-    participant Reg as register.ts
-    participant DB as DbClient
-    participant HC as HttpClient (旧)
-    participant HC2 as HttpClient (新)
+    participant R as Electron进程::Renderer
+    participant Reg as Electron进程::Main::Register
+    participant DB as Electron进程::Main::DbClient
+    participant HC as Electron进程::Main::HttpClient(旧)
+    participant HC2 as Electron进程::Main::HttpClient(新)
 
     R->>Reg: http.setConfig({ baseUrl: 'http://new-api' })
     Reg->>DB: getAppConfig('http_config')
