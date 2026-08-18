@@ -178,13 +178,15 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant R as Renderer
+    participant P as Preload
     participant M as Main::SdkClient
     participant T as Main::WorkerTransport
     participant W as Main::Worker
     participant B as MockBinding
     participant C as mock C 库
 
-    R->>M: sdk.init(config)
+    R->>P: window.api.sdk.init(config)
+    P->>M: IPC invoke('sdk:init', config)
     M->>T: invoke('init', [config])
     T->>W: postMessage
     W->>B: crcInit(config)
@@ -193,22 +195,28 @@ sequenceDiagram
     B-->>W: { id }
     W-->>T: result
     T-->>M: Session
-    M-->>R: { id: 1 }
+    M-->>P: Promise resolve
+    P-->>R: { id: 1 }
 
-    R->>M: sdk.open(session)
+    R->>P: window.api.sdk.open(session.id)
+    P->>M: IPC invoke('sdk:open', id)
     M->>T: invoke('open', [id])
+    T->>W: postMessage
     W->>B: crcOpen(ptr, {cb})
     B->>C: crc_sdk_open()
     C-->>B: handle ptr
     B-->>W: { id }
     W-->>T: result
     T-->>M: Handle
-    M-->>R: { id: 1 }
+    M-->>P: Promise resolve
+    P-->>R: { id: 1 }
 
-    R->>M: sdk.on('event', cb)
+    R->>P: window.api.sdk.on('event', cb)
+    P->>M: IPC 注册事件监听
     M->>T: 注册 emitter
 
-    R->>M: sdk.startScan(handle)
+    R->>P: window.api.sdk.startScan(handle.id)
+    P->>M: IPC invoke('sdk:start-scan', id)
     M->>T: invoke('start', [id])
     T->>W: postMessage
     W->>B: crcStartScan(ptr)
@@ -218,21 +226,24 @@ sequenceDiagram
     B-->>W: ok
     W-->>T: result(null)
     T-->>M: resolve
-    M-->>R: void
+    M-->>P: Promise resolve
+    P-->>R: void
 
     Note over C: 20ms 后 pthread 触发回调
     C->>B: cb(1, '{"status":"started"}')
     B->>W: postMessage(EventMessage)
     W->>T: postMessage(event)
     T->>M: emitter.emit('data')
-    M->>R: cb(SdkEvent)
+    M->>P: IPC send('sdk-events', SdkEvent)
+    P->>R: cb(SdkEvent)
 
     Note over C: 50ms 后第二次回调
     C->>B: cb(2, '{"status":"done"}')
     B->>W: postMessage(EventMessage)
     W->>T: postMessage(event)
     T->>M: emitter.emit('data')
-    M->>R: cb(SdkEvent)
+    M->>P: IPC send('sdk-events', SdkEvent)
+    P->>R: cb(SdkEvent)
 ```
 
 ---
@@ -362,6 +373,7 @@ erDiagram
 ```mermaid
 sequenceDiagram
     participant R as Renderer
+    participant P as Preload
     participant M as Main::DbClient
     participant K as Main::KeyProvider
     participant D as Main::openEncryptedDb
@@ -370,7 +382,8 @@ sequenceDiagram
     participant FC as Main::FieldCipher
     participant DB as SQLite
 
-    R->>M: db.setSecretConfig('token', 'secret-val')
+    R->>P: window.api.db.setSecretConfig("token", "secret-val")
+    P->>M: IPC invoke("db:set-secret-config")('token', 'secret-val')
     M->>M: ensure() → repos
 
     Note over M: 首次调用时 open()
@@ -397,7 +410,8 @@ sequenceDiagram
     Repo->>DB: INSERT INTO secret_config VALUES ('token', blob, now)
     DB-->>Repo: ok
     Repo-->>M: void
-    M-->>R: Promise resolve
+    M-->>P: Promise resolve
+    P-->>R: Promise resolve
 ```
 
 ### 动态视图（时序图 — 密钥错误检测）
@@ -524,11 +538,13 @@ classDiagram
 ```mermaid
 sequenceDiagram
     participant R as Renderer
+    participant P as Preload
     participant H as Main::HttpClient
     participant T as Main::HttpTransport
     participant TS as Main::TokenStore
 
-    R->>H: get('/users')
+    R->>P: window.api.http.get("/users")
+    P->>H: IPC invoke("http:get", "/users")
     H->>TS: getToken()
     TS-->>H: 'my-token'
     H->>T: send({ method: GET, url: baseUrl+/users, headers: {Authorization: Bearer my-token} })
@@ -540,7 +556,8 @@ sequenceDiagram
     H->>T: send({ ... 同上 })
     T-->>H: { status: 200, body: '{"users":[]}' }
     H->>H: parseBody → JSON
-    H-->>R: TypedResponse { status: 200, body: {users:[]} }
+    H-->>P: Promise resolve
+    P-->>R: TypedResponse { status: 200, body: {users:[]} }
 ```
 
 ### 动态视图（时序图 — 401 刷新重放 + single-flight）
@@ -549,12 +566,14 @@ sequenceDiagram
 sequenceDiagram
     participant R1 as Renderer::请求A
     participant R2 as Renderer::请求B
+    participant P as Preload
     participant H as Main::HttpClient
     participant T as Main::HttpTransport
     participant TS as Main::TokenStore
 
     par 请求 A
-        R1->>H: get('/data')
+        R1->>P: window.api.http.get('/data')
+        P->>H: IPC invoke('http:get', '/data')
         H->>T: send({ Authorization: Bearer old-t })
         T-->>H: { status: 401 }
         H->>H: 401 + !refreshed → refreshTokens()
@@ -569,7 +588,8 @@ sequenceDiagram
         T-->>H: { status: 200, body: {data: 'A'} }
         H-->>R1: TypedResponse { data: 'A' }
     and 请求 B（并发）
-        R2->>H: get('/data2')
+        R2->>P: window.api.http.get('/data2')
+        P->>H: IPC invoke('http:get', '/data2')
         H->>T: send({ Authorization: Bearer old-t })
         T-->>H: { status: 401 }
         H->>H: 401 + !refreshed → refreshTokens()
@@ -588,17 +608,20 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant R as Renderer
+    participant P as Preload
     participant H as Main::HttpClient
     participant T as Main::HttpTransport
 
-    R->>H: post('/items', { body: { name: 'x' } })
+    R->>P: window.api.http.post('/items', { body: { name: 'x' } })
+    P->>H: IPC invoke('http:post', '/items', opts)
     H->>H: buildRequest: JSON.stringify body + Content-Type
     H->>T: send({ method: POST, url, headers, body })
     T-->>H: { status: 500, body: 'server err' }
     H->>H: toHttpError → HttpError(server, 500)
     H->>H: POST 非幂等 → 不重试，直接抛
     H->>H: logError (electron-log.warn)
-    H-->>R: reject(HttpError { kind: server, status: 500 })
+    H-->>P: reject(HttpError { kind: server, status: 500 })
+    P-->>R: reject(HttpError)
     R->>R: catch → UI 显示错误
 ```
 
@@ -607,12 +630,14 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant R as Renderer
+    participant P as Preload
     participant Reg as Main::Register
     participant DB as Main::DbClient
     participant HC as Main::HttpClient(旧)
     participant HC2 as Main::HttpClient(新)
 
-    R->>Reg: http.setConfig({ baseUrl: 'http://new-api' })
+    R->>P: window.api.http.setConfig({ baseUrl: 'http://new-api' })
+    P->>Reg: IPC invoke('http:set-config', config)
     Reg->>DB: getAppConfig('http_config')
     DB-->>Reg: 旧配置
     Reg->>DB: setAppConfig('http_config', 新配置 JSON)
@@ -620,14 +645,16 @@ sequenceDiagram
     Reg->>Reg: httpClientPromise = null
     Note over Reg: 下次 HTTP 请求时重建
 
-    R->>Reg: http.get('/users')
+    R->>P: window.api.http.get('/users')
+    P->>Reg: IPC invoke('http:get', '/users')
     Reg->>Reg: ensureHttpClient() → httpClientPromise == null → 重建
     Reg->>DB: getAppConfig('http_config')
     DB-->>Reg: 新配置
     Reg->>HC2: new HttpClient(transport, tokenStore, 新config)
     Reg->>HC2: get('/users')
     HC2-->>Reg: TypedResponse
-    Reg-->>R: 结果
+    Reg-->>P: Promise resolve
+    P-->>R: 结果
 
     Note over HC: 旧实例被 GC（无引用）
 ```
