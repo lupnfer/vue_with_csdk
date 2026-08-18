@@ -139,13 +139,116 @@ code_reader_client/
     └── shared/ipc/                   # IPC 契约测试（zod schema 校验）
 ```
 
-## Windows 打包（Windows 环境）
+## Windows 构建与打包（仅 Windows x64）
 
-1. 确保证书文件在 `c_sdk_lib/x64/cert/`（`cacert.cer`、`cert.pem`、`key.pem`）
-2. `npm install`
-3. `npm run rebuild:electron`（把 native 模块编译成 Electron ABI）
-4. `npm run dist:win`（一键打包：rebuild → build → electron-builder NSIS）
-5. 产出 `release/` 目录下的 NSIS 安装包
+### 构建流程概述
 
-> macOS 开发机不可跑 `rebuild:electron`（需 Windows 编译环境）。
-> 测试在 macOS 用 `npm test`（Node ABI，不需 rebuild）。
+```
+npm install
+  → 依赖安装（better-sqlite3 默认编译成 Node ABI）
+  → 不跑 postinstall（不自动 rebuild）
+
+npm run rebuild:electron
+  → @electron/rebuild 把 better-sqlite3-multiple-ciphers 重新编译成 Electron x64 ABI
+  → koffi 不需要 rebuild（预编译多平台二进制）
+  → 此后 Electron 能加载 native 模块，但 vitest 不能（ABI 不匹配）
+
+npm run build -- --mode=production
+  → electron-vite 构建 main/preload/renderer 三目标 → out/
+
+electron-builder --win --x64
+  → 打包 out/ + node_modules → asar
+  → extraResources: HWPuSDK.dll / IVS_PU_Player.dll / 证书 → resources/native/
+  → asarUnpack: better-sqlite3 / koffi 的 .node 从 asar 解出
+  → NSIS 安装包 → release/
+```
+
+### 前置准备
+
+1. **Windows x64 机器**，装好 Node.js >= 22.12
+2. **Visual Studio Build Tools**（C++ 编译环境，rebuild 需要）
+3. **证书文件**放在 `c_sdk_lib/x64/cert/`：
+   ```
+   c_sdk_lib/x64/cert/
+   ├── cacert.cer    # CA 证书（从 SDK 发布包 sdk/windows/lib/cert/ 复制）
+   ├── cert.pem      # 客户端证书
+   └── key.pem       # 客户端私钥
+   ```
+   密码：`715AO1FEC11AD58A`（默认证书固定密码，已写在 real-binding.ts 的 SdkInitConfig）
+4. **DLL 文件**在 `c_sdk_lib/x64/`：`HWPuSDK.dll` + `IVS_PU_Player.dll`
+5. **应用图标**（可选）：放 `build/icon.ico`，不提供则用默认 Electron 图标
+
+### 打包命令
+
+```bash
+# 方式 1：一键打包（推荐）
+npm install
+npm run dist:win
+# dist:win = rebuild:electron + build --mode=production + electron-builder --win --x64
+
+# 方式 2：分步执行（调试用）
+npm install
+npm run rebuild:electron       # 编译 native 模块为 Electron ABI
+npm run build -- --mode=production  # electron-vite 构建
+npx electron-builder --win --x64    # 打包 NSIS
+```
+
+### 产出
+
+```
+release/
+├── Code Reader Client Setup 0.1.0.exe   # NSIS 安装包（per-user，免 UAC）
+└── win-unpacked/                         # 免安装解压版
+    ├── Code Reader Client.exe            # 启动器
+    ├── resources/
+    │   ├── app.asar                      # 应用代码（main/preload/renderer）
+    │   ├── app.asar.unpacked/            # native 模块（better-sqlite3 / koffi .node）
+    │   └── native/
+    │       ├── HWPuSDK.dll              # 真实 C SDK
+    │       ├── IVS_PU_Player.dll         # 播放器 DLL
+    │       └── cert/                    # 证书
+    │           ├── cacert.cer
+    │           ├── cert.pem
+    │           └── key.pem
+    └── ...
+```
+
+### 安装包内容说明
+
+| 内容 | 来源 | 打包方式 | 运行时路径 |
+|---|---|---|---|
+| Electron + 应用代码 | electron-vite build → `out/` | asar 打包 | `resources/app.asar` |
+| HWPuSDK.dll + IVS_PU_Player.dll | `c_sdk_lib/x64/` | extraResources | `resources/native/` |
+| 证书（cacert.cer/cert.pem/key.pem） | `c_sdk_lib/x64/cert/` | extraResources | `resources/native/cert/` |
+| better-sqlite3 .node | node_modules | asarUnpack | `resources/app.asar.unpacked/` |
+| koffi .node | node_modules | asarUnpack | `resources/app.asar.unpacked/` |
+
+### 安装后运行
+
+- **per-user 安装**（免 UAC）：装到 `%LOCALAPPDATA%\Programs\Code Reader Client\`
+- 桌面快捷方式 / 开始菜单启动
+- 默认 `CRC_SDK_MODE` 未设 → 走 mock binding（不需要真实 DLL 也能启动 UI）
+- 要用真实 SDK：设环境变量后启动：
+  ```cmd
+  set CRC_SDK_MODE=real
+  "Code Reader Client.exe"
+  ```
+- 日志文件：`%APPDATA%\Code Reader Client\logs\main.log`（electron-log，10MB 轮转）
+
+### 验证真实 SDK 功能
+
+设 `CRC_SDK_MODE=real` 启动后：
+1. 打开 **SDK POC** 页
+2. 点"搜索局域网设备" → 应返回局域网内的 SDC/摄像机列表（MAC/IP/型号/SN 等）
+3. 日志在 `%APPDATA%\Code Reader Client\logs\main.log` 查看 SDK 日志输出
+
+### ABI 说明
+
+| 组件 | ABI | 说明 |
+|---|---|---|
+| better-sqlite3-multiple-ciphers | rebuild 前为 Node ABI，rebuild 后为 Electron ABI | `npm install` 默认编译成 Node ABI；`rebuild:electron` 改为 Electron ABI |
+| koffi | 预编译多平台 | 不受 ABI 影响，Node 和 Electron 都能加载 |
+| HWPuSDK.dll | Windows x64 | 固定，不受 Node/Electron 版本影响 |
+
+> **macOS 开发机**：不需要 rebuild（不跑 Electron）。用 `npm test` 跑测试（Node ABI），`npm run dev` 需要 Electron 二进制。
+> **vitest 与 rebuild 的矛盾**：rebuild 后 vitest 无法加载 better-sqlite3（ABI 不匹配）。macOS 开发时不 rebuild，保持 Node ABI；Windows 打包时 rebuild，不跑 vitest。
