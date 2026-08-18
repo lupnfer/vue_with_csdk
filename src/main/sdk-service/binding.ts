@@ -66,7 +66,7 @@ export const mockBinding: SdkBinding = {
     return true
   },
 
-  discoverLocalDevices(): DiscoveredDevice[] {
+  discoverDevicesByMulticast(): DiscoveredDevice[] {
     return [
       {
         mac: '00:11:22:33:44:55',

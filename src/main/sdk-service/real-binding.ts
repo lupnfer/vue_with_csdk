@@ -48,7 +48,7 @@ const WriteLogCallbackProto = koffi.proto('LONG pfWriteLogCallBack(UINT logLevel
 // ---- 函数声明 ----
 
 const IVS_PU_InitEx = lib.func('BOOL IVS_PU_InitEx(ULONG ulLinkMode, CHAR *szLocalIP, ULONG ulLocalPort, ULONG ulLocalTlsPort, PU_CERT_FILE_PATH_PARA *pstCertFilePath)')
-const IVS_PU_DiscoveryLocalDeviceList = lib.func('BOOL IVS_PU_DiscoveryLocalDeviceList(PU_DISCOVER_DEVICE_LIST *pstDeviceList)')
+const IVS_PU_DiscoveryLocalDeviceListByMulticast = lib.func('BOOL IVS_PU_DiscoveryLocalDeviceListByMulticast(PU_DISCOVER_DEVICE_LIST *pstDeviceList)')
 const IVS_PU_Cleanup = lib.func('BOOL IVS_PU_Cleanup()')
 const IVS_PU_GetVersion = lib.func('BOOL IVS_PU_GetVersion(ULONG *pulVersion)')
 const IVS_PU_GetLastError = lib.func('ULONG IVS_PU_GetLastError()')
@@ -88,9 +88,9 @@ export const realBinding: SdkBinding = {
     return result !== 0
   },
 
-  discoverLocalDevices(): DiscoveredDevice[] {
+  discoverDevicesByMulticast(): DiscoveredDevice[] {
     const listBuf = koffi.alloc(DiscoverDeviceListStruct, 1)
-    const result = IVS_PU_DiscoveryLocalDeviceList(listBuf) as number
+    const result = IVS_PU_DiscoveryLocalDeviceListByMulticast(listBuf) as number
     if (result === 0) {
       const code = IVS_PU_GetLastError() as number
       const msg = charArrayToString(IVS_PU_GetErrorMsg(code))

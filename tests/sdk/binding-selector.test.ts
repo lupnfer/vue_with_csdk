@@ -5,7 +5,7 @@ describe('binding-selector', () => {
     delete process.env.CRC_SDK_MODE
     const { selectBinding } = await import('../../src/main/sdk-service/binding-selector')
     const binding = selectBinding()
-    expect(binding.discoverLocalDevices()[0].type).toContain('MOCK')
+    expect(binding.discoverDevicesByMulticast()[0].type).toContain('MOCK')
   })
 
   it('CRC_SDK_MODE=real 在 macOS 抛明确错误', async () => {

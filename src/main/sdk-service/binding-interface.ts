@@ -36,7 +36,7 @@ export interface DiscoveredDevice {
 export interface SdkBinding {
   init(config: SdkInitConfig): boolean
   registerLogCallback(cb: LogCallback): boolean
-  discoverLocalDevices(): DiscoveredDevice[]
+  discoverDevicesByMulticast(): DiscoveredDevice[]
   cleanup(): boolean
   getLastError(): number
   getErrorMsg(errorNo: number): string

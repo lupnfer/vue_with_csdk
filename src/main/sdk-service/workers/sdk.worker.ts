@@ -161,7 +161,7 @@ parentPort?.on('message', (msg: InvokeMessage) => {
       }
       case 'discover': {
         try {
-          const devices = sdkBinding.discoverLocalDevices()
+          const devices = sdkBinding.discoverDevicesByMulticast()
           ok(msg.id, devices)
         } catch (e) {
           fail(msg.id, {
