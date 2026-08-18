@@ -44,8 +44,11 @@ classDiagram
 
     class MockBinding {
         +init(config) boolean
+        +registerLogCallback(cb) boolean
         +discoverLocalDevices() DiscoveredDevice[]
         +cleanup() boolean
+        +getLastError() number
+        +getErrorMsg(no) string
     }
 
     class RealBinding {
@@ -195,8 +198,12 @@ classDiagram
         <<interface>>
         +getAppConfig(key) string|null
         +setAppConfig(key, value) void
+        +deleteAppConfig(key) void
+        +listAppConfig() ConfigEntry[]
         +getSecretConfig(key) string|null
         +setSecretConfig(key, value) void
+        +deleteSecretConfig(key) void
+        +listSecretConfig() ConfigEntry[]
     }
 
     class DbClient {
@@ -207,8 +214,12 @@ classDiagram
         +open() Promise~void~
         +getAppConfig(key) string|null
         +setAppConfig(key, value) void
+        +deleteAppConfig(key) void
+        +listAppConfig() ConfigEntry[]
         +getSecretConfig(key) string|null
         +setSecretConfig(key, value) void
+        +deleteSecretConfig(key) void
+        +listSecretConfig() ConfigEntry[]
         +close() void
         -ensure() Repositories
     }
@@ -241,8 +252,12 @@ classDiagram
         -fieldKey: Buffer
         +getAppConfig(key) string|null
         +setAppConfig(key, value) void
+        +deleteAppConfig(key) void
+        +listAppConfig() ConfigEntry[]
         +getSecretConfig(key) string|null
         +setSecretConfig(key, value) void
+        +deleteSecretConfig(key) void
+        +listSecretConfig() ConfigEntry[]
     }
 
     class FieldCipher {
