@@ -1,58 +1,25 @@
 import type { ISdkClient, IDbClient, IHttpClient, Services } from '../../src/main/use-cases/services'
-import type { Session, Handle, SdkConfig, SdkEvent, DiscoveredDevice } from '../../src/main/sdk-service/types'
+import type { DiscoveredDevice } from '../../src/main/sdk-service/types'
 import type { RequestOptions, TypedResponse } from '../../src/main/http-client/types'
 import { InMemoryTokenStore, type TokenStore } from '../../src/main/http-client/token-store'
 
-/** FakeSdkClient：startScan 后异步投递预设事件；记录调用；可配置抛错。 */
 export class FakeSdkClient implements ISdkClient {
-  readonly calls: string[] = []
-  private eventsToFire: SdkEvent[] = []
-  private listeners: ((e: SdkEvent) => void)[] = []
-  private failOn?: string
-
-  constructor(opts?: { failOn?: string; events?: SdkEvent[] }) {
-    this.failOn = opts?.failOn
-    this.eventsToFire = opts?.events ?? [
-      { handleId: 1, eventType: 1, payload: '{"status":"started"}' },
-      { handleId: 1, eventType: 2, payload: '{"status":"done"}' }
-    ]
-  }
-
-  async init(_config: SdkConfig): Promise<Session> {
-    this.calls.push('init')
-    if (this.failOn === 'init') throw new Error('sdk init failed')
-    return { id: 1 }
-  }
-  async open(_session: Session): Promise<Handle> {
-    this.calls.push('open')
-    if (this.failOn === 'open') throw new Error('sdk open failed')
-    return { id: 1 }
-  }
-  async startScan(_handle: Handle): Promise<void> {
-    this.calls.push('startScan')
-    if (this.failOn === 'startScan') throw new Error('sdk startScan failed')
-    // 异步投递事件
-    setTimeout(() => {
-      for (const e of this.eventsToFire) {
-        for (const cb of this.listeners) cb(e)
-      }
-    }, 10)
-  }
-  async dispose(_handle: Handle): Promise<void> {
-    this.calls.push('dispose')
-  }
-  async disposeSession(_session: Session): Promise<void> {
-    this.calls.push('disposeSession')
-  }
   async discover(): Promise<DiscoveredDevice[]> {
-    this.calls.push('discover')
-    return []
-  }
-  on(_event: 'event', cb: (e: SdkEvent) => void): void {
-    this.listeners.push(cb)
-  }
-  off(_event: 'event', cb: (e: SdkEvent) => void): void {
-    this.listeners = this.listeners.filter((l) => l !== cb)
+    return [
+      {
+        mac: '00:11:22:33:44:55',
+        type: 'IPC',
+        version: 'V1',
+        name: 'Cam',
+        ip: '1.2.3.4',
+        mask: '255.255.255.0',
+        gateway: '1.2.3.1',
+        serialNumber: 'SN',
+        dhcpEnabled: 1,
+        publicVersion: 'V500',
+        isActive: true
+      }
+    ]
   }
 }
 
@@ -133,12 +100,11 @@ export class FakeHttpClient implements IHttpClient {
 
 /** 构造默认 Services（全桩）。 */
 export function makeServices(opts?: {
-  sdk?: ConstructorParameters<typeof FakeSdkClient>[0]
   db?: ConstructorParameters<typeof InMemoryDbClient>[0]
   http?: ConstructorParameters<typeof FakeHttpClient>[0]
 }): Services {
   return {
-    sdk: new FakeSdkClient(opts?.sdk),
+    sdk: new FakeSdkClient(),
     db: new InMemoryDbClient(opts?.db),
     http: new FakeHttpClient(opts?.http)
   }

@@ -4,33 +4,60 @@ import SdkView from '../../src/renderer/src/views/SdkView.vue'
 import type { RendererApi } from '../../src/shared/ipc/api'
 
 beforeEach(() => {
-  const off = vi.fn()
   window.api = {
     ping: vi.fn(),
     getVersion: vi.fn(),
     sdk: {
-      init: vi.fn().mockResolvedValue({ id: 1 }),
-      open: vi.fn().mockResolvedValue({ id: 2 }),
-      startScan: vi.fn().mockResolvedValue(undefined),
-      dispose: vi.fn().mockResolvedValue(undefined),
-      disposeSession: vi.fn().mockResolvedValue(undefined),
-      on: vi.fn().mockImplementation((_event, cb) => {
-        // 模拟立即投递一个事件
-        setTimeout(() => cb({ handleId: 2, eventType: 1, payload: '{"status":"started"}' }), 0)
-        return () => {}
-      })
+      discover: vi.fn().mockResolvedValue([
+        {
+          mac: '00:11:22:33:44:55',
+          type: 'IPC-MOCK',
+          version: 'V1.0-mock',
+          name: 'Mock-Camera-01',
+          ip: '192.168.1.100',
+          mask: '255.255.255.0',
+          gateway: '192.168.1.1',
+          serialNumber: 'MOCK-SN-001',
+          dhcpEnabled: 1,
+          publicVersion: 'V500R019C30-mock',
+          isActive: true
+        }
+      ])
+    },
+    db: {
+      getAppConfig: vi.fn(),
+      setAppConfig: vi.fn(),
+      deleteAppConfig: vi.fn(),
+      listAppConfig: vi.fn().mockResolvedValue([]),
+      getSecretConfig: vi.fn(),
+      setSecretConfig: vi.fn(),
+      deleteSecretConfig: vi.fn(),
+      listSecretConfig: vi.fn().mockResolvedValue([])
+    },
+    http: {
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+      setToken: vi.fn(),
+      setRefreshToken: vi.fn(),
+      clearTokens: vi.fn()
+    },
+    useCase: {
+      configLoadAuth: vi.fn().mockResolvedValue({ sdkSession: { id: 1 } })
     }
   } as unknown as RendererApi
 })
 
 describe('SdkView', () => {
-  it('点击按钮后显示 session/handle 与事件', async () => {
-    const wrapper = mount(SdkView)
+  it('点击按钮后显示发现的设备', async () => {
+    const wrapper = mount(SdkView, { global: { stubs: { RouterLink: true } } })
     await wrapper.find('button').trigger('click')
-    // 等待 Promise + setTimeout
+    // 等待 Promise
     await new Promise((r) => setTimeout(r, 10))
-    expect(wrapper.text()).toContain('session: 1')
-    expect(wrapper.text()).toContain('handle: 2')
-    expect(wrapper.text()).toContain('started')
+    expect(window.api.sdk.discover).toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Mock-Camera-01')
+    expect(wrapper.text()).toContain('192.168.1.100')
+    expect(wrapper.text()).toContain('00:11:22:33:44:55')
   })
 })

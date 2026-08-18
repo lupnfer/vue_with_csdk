@@ -21,29 +21,11 @@ export type VersionInfo = z.infer<typeof versionResultSchema>
 
 // ---- SDK ----
 export const SDK_CHANNELS = {
-  init: 'sdk:init',
-  open: 'sdk:open',
-  startScan: 'sdk:start-scan',
-  dispose: 'sdk:dispose',
-  disposeSession: 'sdk:dispose-session',
   discover: 'sdk:discover',
   event: 'sdk-events'
 } as const
 
 export type SdkChannelName = (typeof SDK_CHANNELS)[keyof typeof SDK_CHANNELS]
-
-export const sdkConfigSchema = z.object({
-  mode: z.number().int(),
-  logger: z.object({ level: z.number().int(), prefix: z.string() })
-})
-
-export const sdkSessionSchema = z.object({ id: z.number().int() })
-export const sdkHandleSchema = z.object({ id: z.number().int() })
-export const sdkEventSchema = z.object({
-  handleId: z.number().int(),
-  eventType: z.number().int(),
-  payload: z.string()
-})
 
 export const discoveredDeviceSchema = z.object({
   mac: z.string(),
@@ -115,13 +97,7 @@ export const httpConfigSchema = z.object({
 
 // ---- USE_CASE ----
 export const USE_CASE_CHANNELS = {
-  scanAndUpload: 'use-case:scan-and-upload',
   configLoadAuth: 'use-case:config-load-auth'
 } as const
 
 export type UseCaseChannelName = (typeof USE_CASE_CHANNELS)[keyof typeof USE_CASE_CHANNELS]
-
-export const scanParamsSchema = z.object({
-  sdkConfig: sdkConfigSchema,
-  uploadUrl: z.string().min(1)
-})

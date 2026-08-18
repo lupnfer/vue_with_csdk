@@ -1,24 +1,7 @@
 import type { VersionInfo } from './channels'
 
-export interface SdkConfig {
-  mode: number
-  logger: { level: number; prefix: string }
-}
-
-export interface SdkEvent {
-  handleId: number
-  eventType: number
-  payload: string
-}
-
 export interface SdkApi {
-  init(config: SdkConfig): Promise<{ id: number }>
-  open(sessionId: number): Promise<{ id: number }>
-  startScan(handleId: number): Promise<void>
-  dispose(handleId: number): Promise<void>
-  disposeSession(sessionId: number): Promise<void>
   discover(): Promise<{ mac: string; type: string; version: string; name: string; ip: string; mask: string; gateway: string; serialNumber: string; dhcpEnabled: number; publicVersion: string; isActive: boolean }[]>
-  on(event: 'event', cb: (e: SdkEvent) => void): () => void
 }
 
 export interface DbApi {
@@ -48,22 +31,11 @@ export interface HttpApi {
   setConfig(config: { baseUrl: string; refreshUrl: string; timeoutMs?: number; maxRetries?: number }): Promise<void>
 }
 
-// 内联类型（与 src/main/use-cases/types.ts 结构相同，靠 TS 结构化类型互通）
-// 不从 main 层 import，消除 shared → main 反向依赖
-export interface ScanResult {
-  sessionId: number
-  handleId: number
-  events: { handleId: number; eventType: number; payload: string }[]
-  uploaded: boolean
-  uploadResponse?: unknown
-}
-
 export interface AppBootstrap {
   sdkSession?: { id: number }
 }
 
 export interface UseCaseApi {
-  scanAndUpload(params: { sdkConfig: { mode: number; logger: { level: number; prefix: string } }; uploadUrl: string }): Promise<ScanResult>
   configLoadAuth(): Promise<AppBootstrap>
 }
 

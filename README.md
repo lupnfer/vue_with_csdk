@@ -23,8 +23,8 @@ npm run build
 ## 测试
 
 ```bash
-npm test                # 单元测试（jsdom，不含 native 集成）
-npm run test:integration # 集成测试（需先 build mock C 库 + electron-vite build）
+npm test                # 单元测试（jsdom）
+npm run test:integration # 集成测试（需先 electron-vite build）
 npm run test:all         # 单元 + 集成
 ```
 
@@ -41,13 +41,6 @@ code_reader_client/
 ├── vitest.config.integration.ts      # 集成测试配置（node 环境，仅 tests/sdk/**）
 │
 ├── build/                            # electron-builder 资源目录（icon.ico 占位）
-│
-├── mock-sdk/                         # mock C 库（模拟 HWPuSDK，macOS 测试用）
-│   └── c/
-│       ├── crc_sdk.h                 # mock 头文件（嵌套结构体/回调/不透明句柄/6 个函数）
-│       ├── crc_sdk.c                 # mock 实现（pthread 异步回调）
-│       └── Makefile                  # clang 编译 mock dylib
-│
 ├── c_sdk_lib/                        # 真实 HWPuSDK（Windows x64，未跟踪 git）
 │   └── x64/
 │       ├── HWPuSDK.dll / .h / .lib   # 真实 SDK
@@ -65,17 +58,17 @@ code_reader_client/
 │   │   │
 │   │   ├── sdk-service/              # C SDK 封装（Koffi FFI + worker_threads）
 │   │   │   ├── binding-interface.ts  # SdkBinding 统一接口
-│   │   │   ├── binding.ts            # mock binding（Koffi 声明 + mockBinding 实现）
+│   │   │   ├── binding.ts            # mock binding（mockBinding 实现）
 │   │   │   ├── real-binding.ts       # real binding（HWPuSDK Koffi 声明 + realBinding 实现）
 │   │   │   ├── binding-selector.ts   # CRC_SDK_MODE 切换 mock/real
-│   │   │   ├── sdk-client.ts         # SdkClient facade（Promise + 事件 + discover）
+│   │   │   ├── sdk-client.ts         # SdkClient facade（discover + terminate）
 │   │   │   ├── errors.ts             # SdkError + 码值翻译
-│   │   │   ├── types.ts              # Session/Handle/SdkConfig/SdkEvent/DiscoveredDevice
+│   │   │   ├── types.ts              # DiscoveredDevice
 │   │   │   ├── transport/
 │   │   │   │   ├── types.ts          # worker 消息协议类型
 │   │   │   │   └── worker-transport.ts  # WorkerTransport + SDK 日志转发到 electron-log
 │   │   │   └── workers/
-│   │   │       └── sdk.worker.ts     # worker 入口（Koffi 调用 + 回调投递 + id↔ptr 注册表）
+│   │   │       └── sdk.worker.ts     # worker 入口（discover + cleanup）
 │   │   │
 │   │   ├── db-service/               # 加密配置库（SQLCipher + 字段加密）
 │   │   │   ├── db-client.ts          # DbClient facade（open/CRUD/close）
@@ -97,10 +90,9 @@ code_reader_client/
 │   │   │
 │   │   ├── use-cases/                # 业务编排层（串起 sdk/db/http）
 │   │   │   ├── services.ts           # ISdkClient/IDbClient/IHttpClient 接口
-│   │   │   ├── scan-and-upload.ts    # 扫描并上传用例
 │   │   │   ├── config-load-auth.ts   # 配置加载与鉴权用例
 │   │   │   ├── errors.ts             # UseCaseError + wrapServiceError
-│   │   │   └── types.ts              # ScanParams/ScanResult/AppBootstrap
+│   │   │   └── types.ts              # AppBootstrap
 │   │   │
 │   │   └── ipc/
 │   │       └── register.ts           # IPC handler 注册（全通道 + 错误序列化 + getDbClient）
@@ -118,10 +110,10 @@ code_reader_client/
 │   │       ├── stores/app.ts         # Pinia store（应用版本）
 │   │       └── views/
 │   │           ├── HomeView.vue      # 首页（版本 + POC 入口链接）
-│   │           ├── SdkView.vue       # SDK 验证页（扫描 + 搜索设备）
+│   │           ├── SdkView.vue       # SDK 验证页（搜索设备）
 │   │           ├── DbView.vue        # DB 验证页（配置读写）
 │   │           ├── HttpView.vue      # HTTP 验证页（请求发送 + 设 Token）
-│   │           └── UseCaseView.vue   # UseCase 验证页（配置加载 + 扫描上传）
+│   │           └── UseCaseView.vue   # UseCase 验证页（配置加载与鉴权）
 │   │
 │   └── shared/                       # ── 主/渲染共享（IPC 契约）──
 │       └── ipc/
@@ -130,13 +122,12 @@ code_reader_client/
 │           └── validate.ts           # 通用 zod 校验工具
 │
 └── tests/                            # ── 测试（Vitest）──
-    ├── main/                         # 主进程单测（security/errors）
-    ├── sdk/                          # SDK 集成测试（需 mock dylib + 构建 worker）
+    ├── main/                         # 主进程单测（security）
+    ├── sdk/                          # SDK 集成测试（需构建 worker）
     ├── db/                           # DB 测试（需 better-sqlite3 native）
     ├── http/                         # HTTP 单测（FakeTransport 驱动）
     ├── use-cases/                    # UseCase 测试（服务桩驱动 + stubs.ts）
-    ├── renderer/                     # 渲染组件测试（jsdom）
-    └── shared/ipc/                   # IPC 契约测试（zod schema 校验）
+    └── renderer/                     # 渲染组件测试（jsdom）
 ```
 
 ## Windows 构建与打包（仅 Windows x64）

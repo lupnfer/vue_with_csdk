@@ -10,9 +10,8 @@
     "preview": "electron-vite preview",
     "typecheck": "vue-tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest run",
-    "test:integration": "npm run build:mock && npm run build && vitest run --config vitest.config.integration.ts",
+    "test:integration": "npm run build && npx vitest run tests/sdk/discover.test.ts",
     "test:all": "npm run test && npm run test:integration",
-    "build:mock": "make -C mock-sdk/c",
     "rebuild:electron": "electron-rebuild -f -w better-sqlite3-multiple-ciphers",
     "dist": "npm run build && electron-builder",
     "dist:win": "npm run rebuild:electron && npm run build -- --mode=production && electron-builder --win --x64"

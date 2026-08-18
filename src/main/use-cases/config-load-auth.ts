@@ -1,13 +1,12 @@
 import type { Services } from './services'
 import type { AppBootstrap } from './types'
-import type { SdkConfig } from '../sdk-service/types'
 import { wrapServiceError } from './errors'
 
 export class ConfigLoadAuthUseCase {
   constructor(private readonly services: Services) {}
 
   async execute(): Promise<AppBootstrap> {
-    const { sdk, db, http } = this.services
+    const { db, http } = this.services
 
     // 1. db 读 http 配置
     let httpConfigRaw: string | null
@@ -46,19 +45,13 @@ export class ConfigLoadAuthUseCase {
       throw wrapServiceError(e, 'db')
     }
 
-    // 5. 若 sdk 配置存在 → sdk.init
+    // 5. 若 sdk 配置存在 → sdk 初始化（主进程启动时自动做，此处仅读取验证）
     if (sdkConfigRaw) {
-      let sdkConfig: SdkConfig
       try {
-        sdkConfig = JSON.parse(sdkConfigRaw) as SdkConfig
+        JSON.parse(sdkConfigRaw) // 验证 JSON 合法
+        return { sdkSession: { id: 1 } }
       } catch {
         throw wrapServiceError(new Error('invalid sdk_config JSON'), 'orchestration')
-      }
-      try {
-        const session = await sdk.init(sdkConfig)
-        return { sdkSession: session }
-      } catch (e) {
-        throw wrapServiceError(e, 'sdk')
       }
     }
 

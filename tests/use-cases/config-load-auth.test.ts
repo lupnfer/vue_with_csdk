@@ -4,7 +4,7 @@ import { UseCaseError } from '../../src/main/use-cases/errors'
 import { makeServices, FakeHttpClient, InMemoryDbClient } from './stubs'
 
 describe('ConfigLoadAuthUseCase', () => {
-  it('成功路径：db 预置配置 → http.setToken → sdk.init → 返回 session', async () => {
+  it('成功路径：db 预置配置 → http.setToken → sdk 配置读取 → 返回 session', async () => {
     const services = makeServices({
       db: {
         appConfig: {
