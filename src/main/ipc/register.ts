@@ -12,9 +12,13 @@ import { NetTransport } from '../http-client/transport'
 import { DbTokenStore } from '../http-client/token-store'
 import { DbHttpConfig } from '../http-client/config'
 import { HttpError, serializeHttpError } from '../http-client/http-error'
-import { USE_CASE_CHANNELS } from '@shared/ipc/channels'
+import { USE_CASE_CHANNELS, SOCKET_CHANNELS, ipModifyParamsSchema } from '@shared/ipc/channels'
 import { ConfigLoadAuthUseCase } from '../use-cases/config-load-auth'
 import { UseCaseError, serializeUseCaseError } from '../use-cases/errors'
+import { MulticastUdpSocket } from '../socket-service/udp-multicast'
+import { PlaceholderCodec } from '../socket-service/codec'
+import { IpModifyService } from '../socket-service/ip-modify'
+import { SocketError, serializeSocketError } from '../socket-service/errors'
 
 let client: SdkClient | null = null
 
@@ -67,6 +71,17 @@ function ensureHttpClient(): Promise<HttpClient> {
     })()
   }
   return httpClientPromise
+}
+
+let ipModifyService: IpModifyService | null = null
+
+function ensureIpModifyService(): IpModifyService {
+  if (!ipModifyService) {
+    // 配置默认值占位（规范/设备文档确认后更新；将来从 db socket_config 读取）
+    const config = { groupAddr: '239.0.0.1', groupPort: 6000, bindPort: 0 }
+    ipModifyService = new IpModifyService(new MulticastUdpSocket(), new PlaceholderCodec(), config)
+  }
+  return ipModifyService
 }
 
 const wrapHttp = async <T>(fn: () => Promise<T> | T): Promise<T> => {
@@ -225,6 +240,22 @@ export function registerIpc(): void {
       }
       const uc = new ConfigLoadAuthUseCase(services)
       return uc.execute()
+    })
+  )
+
+  const wrapSocket = async <T>(fn: () => Promise<T> | T): Promise<T> => {
+    try {
+      return await fn()
+    } catch (e) {
+      if (e instanceof SocketError) throw serializeSocketError(e)
+      throw e
+    }
+  }
+
+  ipcMain.handle(SOCKET_CHANNELS.modifyIp, (_e, params) =>
+    wrapSocket(async () => {
+      const s = ensureIpModifyService()
+      return s.modifyDeviceIp(validate(ipModifyParamsSchema, params))
     })
   )
 }

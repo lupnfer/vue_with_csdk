@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { CHANNELS, SDK_CHANNELS, DB_CHANNELS, HTTP_CHANNELS, USE_CASE_CHANNELS } from '@shared/ipc/channels'
+import { CHANNELS, SDK_CHANNELS, DB_CHANNELS, HTTP_CHANNELS, USE_CASE_CHANNELS, SOCKET_CHANNELS } from '@shared/ipc/channels'
 import type { RendererApi } from '@shared/ipc/api'
 
 const api: RendererApi = {
@@ -27,6 +27,9 @@ const api: RendererApi = {
     setRefreshToken: (token) => ipcRenderer.invoke(HTTP_CHANNELS.setRefreshToken, token),
     clearTokens: () => ipcRenderer.invoke(HTTP_CHANNELS.clearTokens),
     setConfig: (config) => ipcRenderer.invoke(HTTP_CHANNELS.setConfig, config)
+  },
+  socket: {
+    modifyIp: (params) => ipcRenderer.invoke(SOCKET_CHANNELS.modifyIp, params)
   },
   useCase: {
     configLoadAuth: () => ipcRenderer.invoke(USE_CASE_CHANNELS.configLoadAuth)

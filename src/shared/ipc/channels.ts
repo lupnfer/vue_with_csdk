@@ -101,3 +101,17 @@ export const USE_CASE_CHANNELS = {
 } as const
 
 export type UseCaseChannelName = (typeof USE_CASE_CHANNELS)[keyof typeof USE_CASE_CHANNELS]
+
+// ---- SOCKET ----
+export const SOCKET_CHANNELS = {
+  modifyIp: 'socket:modify-ip'
+} as const
+
+export type SocketChannelName = (typeof SOCKET_CHANNELS)[keyof typeof SOCKET_CHANNELS]
+
+export const ipModifyParamsSchema = z.object({
+  mac: z.string().min(1),
+  newIp: z.string().min(1),
+  mask: z.string().min(1),
+  gateway: z.string().min(1)
+})

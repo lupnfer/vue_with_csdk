@@ -39,11 +39,16 @@ export interface UseCaseApi {
   configLoadAuth(): Promise<AppBootstrap>
 }
 
+export interface SocketApi {
+  modifyIp(params: { mac: string; newIp: string; mask: string; gateway: string }): Promise<{ ok: boolean }>
+}
+
 export interface RendererApi {
   ping(): Promise<{ ok: boolean }>
   getVersion(): Promise<VersionInfo>
   sdk: SdkApi
   db: DbApi
   http: HttpApi
+  socket: SocketApi
   useCase: UseCaseApi
 }
