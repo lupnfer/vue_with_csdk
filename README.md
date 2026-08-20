@@ -88,6 +88,13 @@ code_reader_client/
 │   │   │   ├── config.ts             # HttpConfig + DbHttpConfig
 │   │   │   └── types.ts              # RequestOptions/TypedResponse
 │   │   │
+│   │   ├── socket-service/           # 裸报文 UDP 组播（修改 IP，不经 SDK）
+│   │   │   ├── udp-multicast.ts      # UdpSocket 接口 + MulticastUdpSocket(dgram) + FakeUdpSocket(桩)
+│   │   │   ├── codec.ts              # PacketCodec 接口 + 占位实现（规范到替换）
+│   │   │   ├── ip-modify.ts          # IpModifyService（校验+encode+send）
+│   │   │   ├── errors.ts             # SocketError + 序列化
+│   │   │   └── types.ts              # IpModifyParams/MulticastConfig
+│   │   │
 │   │   ├── use-cases/                # 业务编排层（串起 sdk/db/http）
 │   │   │   ├── services.ts           # ISdkClient/IDbClient/IHttpClient 接口
 │   │   │   ├── config-load-auth.ts   # 配置加载与鉴权用例
@@ -126,6 +133,7 @@ code_reader_client/
     ├── sdk/                          # SDK 集成测试（需构建 worker）
     ├── db/                           # DB 测试（需 better-sqlite3 native）
     ├── http/                         # HTTP 单测（FakeTransport 驱动）
+    ├── socket/                       # 裸报文单测（FakeUdpSocket 驱动）
     ├── use-cases/                    # UseCase 测试（服务桩驱动 + stubs.ts）
     └── renderer/                     # 渲染组件测试（jsdom）
 ```

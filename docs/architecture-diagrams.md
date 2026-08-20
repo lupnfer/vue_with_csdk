@@ -18,6 +18,7 @@ graph TB
             SDK[SdkClient]
             DB[DbClient]
             HTTP[HttpClient]
+            SOCK[IpModifyService<br/>socket-service]
             REG[Register<br/>IPC handler]
             subgraph "Worker 线程"
                 W[sdk.worker.ts<br/>Koffi FFI]
@@ -38,6 +39,7 @@ graph TB
     REG --> SDK
     REG --> DB
     REG --> HTTP
+    REG --> SOCK
     REG <-->|IPC| CB
     CB --> VUE
 ```
@@ -658,3 +660,99 @@ sequenceDiagram
 
     Note over HC: 旧实例被 GC（无引用）
 ```
+
+---
+
+## socket-service
+
+裸报文 UDP 组播，修改设备 IP（不经 SDK，独立通道）。对端报文规范未到，`codec.ts` 占位实现可替换。
+
+### 静态视图（类图 / 模块结构）
+
+```mermaid
+classDiagram
+    class IpModifyService {
+        -socket: UdpSocket
+        -codec: PacketCodec
+        -config: MulticastConfig
+        +modifyDeviceIp(params) Promise~IpModifyResult~
+    }
+
+    class UdpSocket {
+        <<interface>>
+        +bind(port) Promise~void~
+        +addMembership(addr, iface?) void
+        +send(buf, port, addr) Promise~void~
+        +onMessage(cb) void
+        +close() void
+    }
+
+    class MulticastUdpSocket {
+        -socket: dgram.Socket
+        +bind(port) Promise~void~
+        +addMembership(addr, iface?) void
+        +send(buf, port, addr) Promise~void~
+        +onMessage(cb) void
+        +close() void
+    }
+
+    class FakeUdpSocket {
+        +sent: array
+        +memberships: array
+        +send(buf, port, addr) Promise~void~
+        +emitMessage(buf, rinfo) void
+    }
+
+    class PacketCodec {
+        <<interface>>
+        +encode(packet) Buffer
+        +decode(buf) IpModifyPacket
+    }
+
+    class PlaceholderCodec {
+        +encode(packet) Buffer
+        +decode(buf) IpModifyPacket
+    }
+
+    class SocketError {
+        +code: string
+        +category: SocketErrorCategory
+        +retryable: boolean
+    }
+
+    IpModifyService --> UdpSocket : send
+    IpModifyService --> PacketCodec : encode
+    UdpSocket <|.. MulticastUdpSocket
+    UdpSocket <|.. FakeUdpSocket
+    PacketCodec <|.. PlaceholderCodec
+    MulticastUdpSocket --> NodeDgram : require('dgram')
+    PlaceholderCodec --> PlaceholderLayout : magic+ver+type+len+body+crc32
+```
+
+> 报文布局是**占位**（规范到后只换 PlaceholderCodec 内部，接口不变，上层不动）。
+> 与 SDK 完全解耦，不进 worker（UDP 非阻塞，无 native 崩溃风险，同 db-service 主进程直跑）。
+
+### 动态视图（时序图 — 修改 IP 端到端）
+
+```mermaid
+sequenceDiagram
+    participant R as Renderer
+    participant P as Preload
+    participant M as Main::IpModifyService
+    participant C as Main::PacketCodec
+    participant S as Main::UdpSocket
+    participant DEV as 设备（组播组）
+
+    R->>P: window.api.socket.modifyIp({mac,newIp,mask,gateway})
+    P->>M: IPC invoke('socket:modify-ip', params)
+    M->>C: encode({type: MODIFY_IP, ...params})
+    C-->>M: Buffer (magic+ver+type+len+body+crc32)
+    M->>S: send(buf, groupPort, groupAddr)
+    S->>DEV: dgram 组播发送
+    M-->>P: { ok: true }
+    P-->>R: { ok: true }
+    R->>R: UI 显示"已发送"
+```
+
+> 默认**单向模式**（发出去即返回），不做重传/确认（UDP 不可靠）。应答模式接口已预留（`UdpSocket.onMessage`），规范明确需要设备 ACK 时再启用。
+> 与 discover 串联：Renderer 先 `sdk.discover()`（SDK 组播搜索）拿 mac+IP，再 `socket.modifyIp()`（裸报文）改 IP。两条组播通道独立。
